@@ -1,5 +1,6 @@
-// Pembaca Instagram (API with Instagram Login). Tanpa dependensi, Node 18+.
-const BASE = 'https://graph.instagram.com/v21.0';
+// Pembaca Instagram Graph API (Login Terpadu / token System User). Tanpa dependensi, Node 18+.
+// IG_API_HOST bisa diganti ke graph.instagram.com bila memakai token Instagram Login lama.
+const BASE = `https://${process.env.IG_API_HOST || 'graph.facebook.com'}/v21.0`;
 
 async function getJson(url, fetchFn) {
   const res = await fetchFn(url);
@@ -13,10 +14,11 @@ async function getJson(url, fetchFn) {
 
 // Ambil followers_count + komentar baru dari beberapa post terakhir.
 // seen: Set id komentar yang sudah diproses. Mengembalikan input untuk step() dan id baru.
-async function fetchInput({ token, seen, maxPosts = 12, maxPages = 5, fetchFn = fetch }) {
+async function fetchInput({ token, igUserId, seen, maxPosts = 12, maxPages = 5, fetchFn = fetch }) {
   const q = (p, extra = '') => `${BASE}${p}${p.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(token)}${extra}`;
-  const me = await getJson(q('/me?fields=username,followers_count'), fetchFn);
-  const media = await getJson(q(`/me/media?fields=id,timestamp&limit=${maxPosts}`), fetchFn);
+  const id = igUserId || 'me';
+  const me = await getJson(q(`/${id}?fields=username,followers_count`), fetchFn);
+  const media = await getJson(q(`/${id}/media?fields=id,timestamp&limit=${maxPosts}`), fetchFn);
   const fresh = [];
   for (const m of media.data || []) {
     let url = q(`/${m.id}/comments?fields=id,text,username,like_count,timestamp&limit=50`);

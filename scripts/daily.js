@@ -41,7 +41,7 @@ function manualInput(world) {
   const useFake = args.includes('--fake');
   let input, source;
   if (useFake) { input = fakeInput(world.day + 1); source = 'DATA PALSU'; }
-  else if (process.env.IG_TOKEN) { input = await fetchInput({ token: process.env.IG_TOKEN, seen: new Set(cursor.seen) }); source = 'Instagram'; }
+  else if (process.env.IG_TOKEN) { input = await fetchInput({ token: process.env.IG_TOKEN, igUserId: process.env.IG_USER_ID, seen: new Set(cursor.seen) }); source = 'Instagram'; }
   else { input = manualInput(world); source = 'Input manual'; }
   if (!input) { console.log('Tidak ada IG_TOKEN dan manual/input.txt kosong, dilewati.'); return; }
   console.log(`${source}: ${input.followers} followers, ${input.comments.length} komentar baru`);
