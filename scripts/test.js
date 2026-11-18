@@ -59,7 +59,7 @@ const fakeFetch = async url => { const k = Object.keys(pages).find(k => url.incl
   assert.strictEqual(w.residents.dedi.say.text, '...', 'komen kasar disamarkan di balon');
   assert.ok(r.log.events.length >= 0 && r.state.residents.sari.say.text.length <= 48);
   const caption = require('../engine/engine.js'); // caption dipanggil di step
-  assert.ok(String(r.log.caption || '').includes('Quest besok'), 'caption memuat quest besok');
+  assert.ok(String(r.log.caption || '').includes('QUEST HARI INI'), 'caption memuat quest hari ini');
   console.log('quest/koin/balon OK: quest harian, 1-2 koin per hari, komen kasar disamarkan');
 })();
 // Uji toko kosmetik

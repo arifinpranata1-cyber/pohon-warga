@@ -8,7 +8,7 @@ html,body{margin:0;background:#1a1466;overflow:hidden;font-family:Poppins,'Helve
 </style></head><body><canvas id="c" width="1080" height="1920"></canvas>
 <div class="top"><div class="logo">🌳 POHON WARGA</div><div class="day" id="day">HARI KE-5</div></div>
 <div class="pill"><b>Desa 3</b><span id="pop">312 warga di pulau ini</span></div>
-<div id="ui"><input id="q" placeholder="Cari namamu (tanpa @)"><div id="res"></div><span class="btn" id="tg"></span></div><div class="card"><span class="tag" id="tag">SENJA</span><h3 id="h3">Lampu-lampu mulai menyala.</h3><div class="cm" id="c1"><i>@dewi_ananda</i> membawa buah ke dapur · <i>@raka_wp</i> memperbaiki jembatan</div></div>
+<div id="ui"><input id="q" placeholder="Cari namamu (tanpa @)"><div id="res"></div><span class="btn" id="tg"></span><span class="btn" id="qs" style="display:none;white-space:normal;max-width:240px;text-align:left"></span></div><div class="card"><span class="tag" id="tag">SENJA</span><h3 id="h3">Lampu-lampu mulai menyala.</h3><div class="cm" id="c1"><i>@dewi_ananda</i> membawa buah ke dapur · <i>@raka_wp</i> memperbaiki jembatan</div></div>
 <script type="importmap">{"imports":{"three":"./lib/three/build/three.module.js","three/addons/":"./lib/three/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
@@ -478,6 +478,7 @@ const L=DAYS[DAYS.length-1]||{events:[],featured_comments:[]};const dgE=L.events
 $('tag').textContent=dgE?'SERANGAN':(NIGHT?'MALAM':(DAY?'SIANG':'SENJA'));
 $('h3').textContent=dgE?(dgE.result==='driven_off'?'Naga diusir warga!':'Naga merusak rumah, warga memperbaiki.'):(fc.length?'Bangunan baru dari komentar':'Hari tenang di kampung');
 $('c1').innerHTML=fc.length?fc.map(c=>'<i>@'+c.user+'</i> request '+c.building).join(' · '):'Komen untuk request bangunan · 0 warga hilang';
+if(DATA.questNext){$('qs').style.display='';$('qs').textContent='🎯 Quest: '+DATA.questNext}
 {const nx={siang:'senja',senja:'malam',malam:'siang'},ic={siang:'☀ Siang',senja:'🌇 Senja',malam:'🌙 Malam'};$('tg').textContent=ic[nx[MODE]];$('tg').onclick=()=>{const q=new URLSearchParams(location.search);q.delete('night');q.set('m',nx[MODE]);location.search=q.toString()}}
 const rtsEl=document.createElement('div');rtsEl.id='rts';rtsEl.style.cssText='margin-top:6px';$('ui').appendChild(rtsEl);
 DATA.rts.forEach(r=>{const e=document.createElement('span');e.className='btn';e.dataset.rt=r.id;e.style.marginRight='4px';e.textContent='Desa '+r.number;e.onclick=()=>switchRT(r.id);rtsEl.appendChild(e)});

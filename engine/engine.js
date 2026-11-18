@@ -73,7 +73,7 @@ function caption(S, prev, log) {
   const homes = s => s.buildings.filter(b => b.type === 'rumah' && b.status === 'done').length;
   const built = log.events.filter(e => e.type === 'built');
   const workers = Object.values(S.residents).filter(r => r.task === 'KERJA' && !r.optOut && r.id !== 'budi').map(r => '@' + r.username).sort().slice(0, 3);
-  const L = [`Day ${S.day} Pohon Warga.`];
+  const L = [`Day ${S.day} Pohon Warga.`, `QUEST HARI INI (komen sebelum 19:00 WIB): ${log.questBesok}. Hadiah 1 koin.`];
   L.push(log.usul_teratas ? `Usul teratas: @${log.usul_teratas.user}, "${log.usul_teratas.text}".` : 'Usul teratas: belum ada, Pak RT menunggu komentar.');
   L.push(built.length ? 'Selesai: ' + built.map(e => `${CFG.nama[e.building]}. ${e.effect || ''}`.trim()).join(' ') : 'Selesai: belum ada.');
   if (log.proyek.length) L.push('Dikerjakan: ' + log.proyek.map(p => `${CFG.nama[p.building]} tahap ${p.tahap} dari ${p.total}`).join(', ') + '.');
@@ -86,8 +86,7 @@ function caption(S, prev, log) {
   if (jc.length) L.push('Ganti job: ' + jc.map(e => `@${e.user} jadi ${e.to}`).join(', ') + '.');
   L.push(`Warga: ${prev.population} menjadi ${S.population}. Rumah: ${homes(prev)} menjadi ${homes(S)}.`);
   L.push(`Kas: ${S.kas} koin` + (S.kas < 0 ? ` (utang: ${-S.kas})` : '') + '.');
-  L.push(`Quest hari ini: ${log.quest.text} (selesai: ${log.quest.selesai} warga, hadiah 1 koin).`);
-  L.push(`Quest besok: ${log.questBesok}.`);
+  L.push(`Quest kemarin: ${log.quest.text}. Selesai: ${log.quest.selesai} warga` + (log.quest.nama.length ? ' (' + log.quest.nama.map(n => '@' + n).join(', ') + ')' : '') + '.');
   L.push('Besok: ' + (S.queue[0] ? CFG.nama[S.queue[0].type] + ' dari antrean.' : 'menunggu usul baru.'));
   return L.join('\n');
 }
@@ -135,10 +134,10 @@ function step(prev, input) {
     else if (!t && !parseJob(c.text) && !parseShop(c.text)) log.events.push({ type: 'unmatched', user: r.username });
   }
   // 1b. koin pribadi + quest harian
-  const q = questFor(S.worldId, S.day); let qDone = 0;
+  const q = questFor(S.worldId, S.day); let qDone = 0; const qNames = [];
   for (const [key, cs] of Object.entries(byUser)) { const r = S.residents[key]; if (!r || r.optOut || r.id === 'budi') continue;
-    r.koin = (r.koin || 0) + 1; if (q.check(cs)) { r.koin += 1; qDone++; } }
-  log.quest = { id: q.id, text: q.text, selesai: qDone }; log.questBesok = questFor(S.worldId, S.day + 1).text;
+    r.koin = (r.koin || 0) + 1; if (q.check(cs)) { r.koin += 1; qDone++; qNames.push(r.username); } }
+  log.quest = { id: q.id, text: q.text, selesai: qDone, nama: qNames.slice(0, 3) }; S.questNext = questFor(S.worldId, S.day + 1).text; log.questBesok = questFor(S.worldId, S.day + 1).text;
   // 2. population & RT assignment
   S.population = Math.max(input.followers, named().length);
   let left = S.population;
