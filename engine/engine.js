@@ -9,7 +9,7 @@ const CFG = {
     menara: ['menara'], kebun: ['kebun', 'taman'], jembatan: ['jembatan'], lampion: ['lampu', 'lampion'] },
   taskKeys: { RONDA: ['ronda', 'jaga', 'siaga'], MASAK: ['masak', 'dapur'], CARI: ['cari', 'kayu'], PERBAIKI: ['perbaiki', 'tukang'], RAWAT: ['rawat', 'siram'], TIDUR: ['tidur', 'istirahat'], KERJA: ['kerja', 'bangun', 'proyek'] },
   energyCost: { RONDA: 15, MASAK: 10, CARI: 12, PERBAIKI: 12, RAWAT: 10, TIDUR: -40, KERJA: 12 },
-  banned: ['anjing', 'bangsat', 'kontol', 'memek', 'babi'],
+  banned: ['anjing', 'bangsat', 'kontol', 'memek', 'babi', 'jancok', 'jancuk', 'bajingan', 'keparat', 'sialan', 'kampret', 'brengsek', 'goblok', 'tolol', 'ngentot', 'lonte', 'pantek', 'bokep', 'togel', 'pinjol', 'porno', 'kimak', 'cukimai', 'pepek', 'bangke', 'idiot'],
   // v0.3 (spesifikasi bagian 10): kas, proyek bertahap. Angka awal = tebakan, disetel setelah uji 14 hari.
   startKas: 30, kasPerActive: 0.2, belanjaBesar: 200,
   project: { rumah: { stages: 1, days: 1, need: 1, biaya: 1 }, warung: { stages: 1, days: 2, need: 2, biaya: 3 }, balai: { stages: 2, days: 2, need: 3, biaya: 4 },
@@ -21,6 +21,27 @@ const CFG = {
     jembatan: { kas: 3, line: 'Warga tak perlu berenang lagi.' }, lampion: { kas: 1, line: 'Malam terang, anak-anak susah disuruh tidur.' } },
   // v0.4 (spesifikasi bagian 11, 13): job acak, EXP, level. 3 job; ganti job 1x seminggu lewat komen 'JOB <nama>'.
   jobs: ['ARCHER', 'SWORDMAN', 'MAGE'], expPerComment: 10, expMaxPerDay: 3, expPerLevel: 50, jobChangeDays: 7,
+  // v0.5 (spesifikasi bagian 13): quest harian 1 baris, hadiah 1 koin pribadi; 1 koin pribadi per hari komen.
+  quests: [
+    { id: 'komen3', text: 'Komen 3 kali hari ini', check: cs => cs.length >= 3 },
+    { id: 'bangun', text: 'Minta satu bangunan di komentar', check: cs => cs.some(c => parseBuild(c.text)) },
+    { id: 'tugas', text: 'Pilih tugas: RONDA, MASAK, atau KERJA', check: cs => cs.some(c => /\b(ronda|masak|kerja)\b/i.test(c.text)) },
+    { id: 'tag', text: 'Tag satu teman di komentar (@nama)', check: cs => cs.some(c => /@\w/.test(c.text)) },
+    { id: 'job', text: 'Sebut jobmu: ARCHER, SWORDMAN, atau MAGE', check: cs => cs.some(c => /archer|swordsman|swordman|mage/i.test(c.text)) },
+  ],
+  // v0.6 (spesifikasi bagian 12): toko kosmetik. Komen 'BELI <item>' (otomatis dipakai), 'PAKAI <item>' untuk ganti. Hanya tampilan.
+  shop: [
+    { id: 'syal', nama: 'Syal', harga: 3, slot: 'scarf', keys: ['syal'], look: { scarf: 0xff7fb0 } },
+    { id: 'kacamata', nama: 'Kacamata', harga: 3, slot: 'glasses', keys: ['kacamata'], look: { glasses: 1 } },
+    { id: 'tas', nama: 'Tas punggung', harga: 3, slot: 'pack', keys: ['tas'], look: { pack: 0xc89a58 } },
+    { id: 'cap', nama: 'Topi cap', harga: 3, slot: 'hat', keys: ['cap'], look: { hat: 'cap' } },
+    { id: 'jerami', nama: 'Topi jerami', harga: 3, slot: 'hat', keys: ['jerami'], look: { hat: 'straw' } },
+    { id: 'kelinci', nama: 'Kuping kelinci', harga: 8, slot: 'hat', keys: ['kelinci'], look: { hat: 'bunny' } },
+    { id: 'kucing', nama: 'Kuping kucing', harga: 8, slot: 'hat', keys: ['kucing'], look: { hat: 'cat' } },
+    { id: 'tanduk', nama: 'Topi tanduk', harga: 8, slot: 'hat', keys: ['tanduk'], look: { hat: 'horns' } },
+    { id: 'jubah', nama: 'Jubah', harga: 8, slot: 'cape', keys: ['jubah'], look: { cape: 0x3a78d0 } },
+    { id: 'sayap', nama: 'Sayap hitam kecil', harga: 8, slot: 'wings', keys: ['sayap'], look: { wings: 0x15121c } },
+  ],
   nama: { rumah: 'Rumah', warung: 'Warung', balai: 'Balai', sumur: 'Sumur', menara: 'Menara', kebun: 'Kebun', jembatan: 'Jembatan', lampion: 'Lampion' },
 };
 function hash(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -42,6 +63,10 @@ function parseBuild(text) { for (const [t, ks] of Object.entries(CFG.buildKeys))
 const levelOf = exp => 1 + Math.floor((exp || 0) / CFG.expPerLevel);
 const randomJob = (key, worldId) => CFG.jobs[hash(key + '|job|' + worldId) % CFG.jobs.length];
 function parseJob(text) { const m = /\bjob\s+(archer|swordsman|swordman|mage)\b/i.exec(text); return m ? (m[1].toUpperCase() === 'SWORDSMAN' ? 'SWORDMAN' : m[1].toUpperCase()) : null; }
+const questFor = (worldId, day) => CFG.quests[hash(worldId + '|quest|' + day) % CFG.quests.length];
+const sayText = t => { const x = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 48); return CFG.banned.some(b => x.toLowerCase().includes(b)) ? '...' : x; };
+const shopItem = text => CFG.shop.find(i => hasKey(text, i.keys));
+function parseShop(text) { const t = norm(text); const m = /\b(beli|pakai)\b/.exec(t); if (!m) return null; const it = shopItem(t.slice(m.index)); return it ? { act: m[1], item: it } : null; }
 const cleanName = u => CFG.banned.some(b => u.toLowerCase().includes(b)) ? 'warga' : u;
 
 function caption(S, prev, log) {
@@ -55,10 +80,14 @@ function caption(S, prev, log) {
   if (workers.length) L.push('Pekerja: ' + workers.join(', ') + '.');
   const ups = log.events.filter(e => e.type === 'level_up').slice(0, 3);
   if (ups.length) L.push('Naik level: ' + ups.map(e => `@${e.user} Lv${e.level}`).join(', ') + '.');
+  const bl = log.events.filter(e => e.type === 'beli').slice(0, 3);
+  if (bl.length) L.push('Belanja: ' + bl.map(e => `@${e.user} beli ${e.item}`).join(', ') + '.');
   const jc = log.events.filter(e => e.type === 'job_change').slice(0, 3);
   if (jc.length) L.push('Ganti job: ' + jc.map(e => `@${e.user} jadi ${e.to}`).join(', ') + '.');
   L.push(`Warga: ${prev.population} menjadi ${S.population}. Rumah: ${homes(prev)} menjadi ${homes(S)}.`);
   L.push(`Kas: ${S.kas} koin` + (S.kas < 0 ? ` (utang: ${-S.kas})` : '') + '.');
+  L.push(`Quest hari ini: ${log.quest.text} (selesai: ${log.quest.selesai} warga, hadiah 1 koin).`);
+  L.push(`Quest besok: ${log.questBesok}.`);
   L.push('Besok: ' + (S.queue[0] ? CFG.nama[S.queue[0].type] + ' dari antrean.' : 'menunggu usul baru.'));
   return L.join('\n');
 }
@@ -72,7 +101,7 @@ function step(prev, input) {
   const named = () => Object.values(S.residents).filter(r => !r.optOut);
 
   // 1. comments (only those before the gate are passed in by the caller)
-  const requests = [];
+  const requests = [], byUser = {};
   for (const c of input.comments) {
     const key = c.user.toLowerCase();
     if (hasKey(c.text, ['keluar'])) { if (S.residents[key]) { S.residents[key].optOut = true; log.events.push({ type: 'opt_out', user: cleanName(c.user) }); } continue; }
@@ -88,11 +117,28 @@ function step(prev, input) {
       if (r.expDay !== S.day) { r.expDay = S.day; r.expN = 0; }
       if (r.expN < CFG.expMaxPerDay) { r.expN++; r.exp = (r.exp || 0) + CFG.expPerComment; const lv = levelOf(r.exp); if (lv > (r.level || 1)) { log.events.push({ type: 'level_up', user: r.username, level: lv, job: r.job }); r.level = lv; } }
     }
+    if (r.id !== 'budi') {
+      const sh = parseShop(c.text);
+      if (sh) { r.items = r.items || []; r.look = r.look || {};
+        const own = r.items.includes(sh.item.id);
+        if (sh.act === 'beli' && !own && r.buyDay === S.day) log.events.push({ type: 'beli_gagal', user: r.username, item: sh.item.nama, alasan: 'maks 1 barang per hari' });
+        else if (sh.act === 'beli' && !own && (r.koin || 0) >= sh.item.harga) { r.buyDay = S.day; r.koin -= sh.item.harga; r.items.push(sh.item.id); r.look = { ...r.look, ...Object.fromEntries(CFG.shop.filter(i => i.slot === sh.item.slot).flatMap(i => Object.keys(i.look)).map(k => [k, null])), ...sh.item.look }; r.look = Object.fromEntries(Object.entries(r.look).filter(([, v]) => v !== null)); log.events.push({ type: 'beli', user: r.username, item: sh.item.nama, harga: sh.item.harga }); }
+        else if (sh.act === 'pakai' && own) { r.look = { ...Object.fromEntries(Object.entries(r.look).filter(([k]) => !CFG.shop.filter(i => i.slot === sh.item.slot).some(i => k in i.look))), ...sh.item.look }; log.events.push({ type: 'pakai', user: r.username, item: sh.item.nama }); }
+        else log.events.push({ type: 'beli_gagal', user: r.username, item: sh.item.nama, alasan: own ? 'sudah punya' : 'koin kurang' });
+      }
+    }
+    if (r.id !== 'budi' && sayText(c.text)) r.say = { day: S.day, text: sayText(c.text) };
+    (byUser[key] = byUser[key] || []).push(c);
     const t = parseTask(c.text); if (t) { r.task = t; r.explicit = S.day; }
     const b = parseBuild(c.text);
     if (b) requests.push({ type: b, user: key, username: r.username, text: c.text, likes: c.likes || 0, ts: c.ts || 0 });
-    else if (!t && !parseJob(c.text)) log.events.push({ type: 'unmatched', user: r.username });
+    else if (!t && !parseJob(c.text) && !parseShop(c.text)) log.events.push({ type: 'unmatched', user: r.username });
   }
+  // 1b. koin pribadi + quest harian
+  const q = questFor(S.worldId, S.day); let qDone = 0;
+  for (const [key, cs] of Object.entries(byUser)) { const r = S.residents[key]; if (!r || r.optOut || r.id === 'budi') continue;
+    r.koin = (r.koin || 0) + 1; if (q.check(cs)) { r.koin += 1; qDone++; } }
+  log.quest = { id: q.id, text: q.text, selesai: qDone }; log.questBesok = questFor(S.worldId, S.day + 1).text;
   // 2. population & RT assignment
   S.population = Math.max(input.followers, named().length);
   let left = S.population;

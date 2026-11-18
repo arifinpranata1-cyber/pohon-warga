@@ -49,6 +49,13 @@ function label(txt,col,lv){col=col||window.__desaCol||DESACOL[0];const c=documen
  if(at){g.fillStyle=col;g.fillText('@',x,y);x+=g.measureText('@').width}g.fillStyle='#ffffff';g.fillText(rest,x,y);x+=g.measureText(rest).width;
  if(lvT){g.font='800 '+Math.round(fs*.78)+'px Poppins';g.fillStyle='#ffd21f';g.fillText(lvT,x,y)}
  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(4.4,1.1,1);s.renderOrder=10;return s}
+const BUB=[];
+function bubble(txt){const c=document.createElement('canvas');c.width=640;c.height=200;const g=c.getContext('2d');
+ g.fillStyle='#ffffff';g.strokeStyle='#2a1a4a';g.lineWidth=8;g.beginPath();g.roundRect(12,12,616,128,44);g.fill();g.stroke();
+ g.beginPath();g.moveTo(290,138);g.lineTo(320,188);g.lineTo(350,138);g.closePath();g.fillStyle='#ffffff';g.fill();g.beginPath();g.moveTo(284,136);g.lineTo(320,190);g.lineTo(356,136);g.strokeStyle='#2a1a4a';g.stroke();g.fillStyle='#ffffff';g.fillRect(292,128,56,16);
+ let fs=54;g.font='700 '+fs+'px Poppins';while(g.measureText(txt).width>560&&fs>24){fs-=2;g.font='700 '+fs+'px Poppins'}
+ g.fillStyle='#17102b';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,320,78);
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));sp.scale.set(4.4,1.375,1);sp.renderOrder=11;sp.center.set(.5,0);return sp}
 const hairs2=[0x2b1b2e,0x3b2318,0x9b0f27,0x262c60,0x6b3bb5];
 const names=['@dewi_ananda','@raka_wp','@ronda.nia','@putri.id','@mbak.tia','Pak RT Budi','@arif_n','@kiki.w','@lintang.c','@yoga_9'];
 let nameI=0;
@@ -93,7 +100,7 @@ function chibi(sp){
  else _m(g,new THREE.CylinderGeometry(.3,.38,.8,7),sh,0,.98,0);
  if(!sp.dress&&!sp.budi)_m(g,new THREE.CylinderGeometry(.35,.36,.09,7),M(0x3a2418),0,.7,0);
  if(sp.budi){_m(g,new THREE.BoxGeometry(.7,.14,.5),M(0xffffff),0,1.34,.02);_m(g,new THREE.BoxGeometry(.2,.1,.08),M(0x1c1a3a),0,1.36,.3)}
- if(sp.cape){const c=_m(g,new THREE.BoxGeometry(.84,1.1,.07),M(0xc42a34),0,1.0,-.36);c.rotation.x=.12}
+ if(sp.cape){const c=_m(g,new THREE.BoxGeometry(.84,1.1,.07),M(sp.cape>1?sp.cape:0xc42a34),0,1.0,-.36);c.rotation.x=.12}
  for(const s of[-1,1]){const p=new THREE.Group();p.position.set(s*.44,1.3,0);g.add(p);
   _m(p,new THREE.CylinderGeometry(.1,.09,.5,5),sp.budi?sh:sh,0,-.25,0);_m(p,_sph(.11,6,5),sp.budi?M(0xffffff):sk,0,-.55,0);arms.push(p)}
  const head=new THREE.Group();head.position.y=2.12;head.scale.setScalar(1.3);g.add(head);
@@ -133,6 +140,7 @@ function chibi(sp){
  if(H==='archer'){const hc=sp.hood||0x3a8a4a;const cr=_m(head,_cap(.7,Math.PI*.5),M(hc),0,.1,0);cr.rotation.x=-.12;const br=_m(head,new THREE.CylinderGeometry(.95,.8,.1,9),M(hc),0,.16,.08);br.rotation.x=-.12;const ft=_m(head,new THREE.ConeGeometry(.09,.7,4),M(0xe8363d),.5,.7,-.1);ft.rotation.z=-.7}
  if(H==='bunny'){const ec=M(sp.hood||0xf4f0f4),ic=M(0xffa8c0);for(const q of[-1,1]){const e=_m(head,new THREE.CylinderGeometry(.14,.16,.85,6),ec,q*.28,.85,-.05);e.rotation.z=-q*.18;const i=_m(head,new THREE.CylinderGeometry(.07,.09,.6,6),ic,q*.29,.85,.06);i.rotation.z=-q*.18;_m(head,_sph(.16,6,5),ec,q*.34,1.28,-.05)}}
  if(H==='cat'){const ec=M(sp.hood||0x3a3440);for(const q of[-1,1]){const e=_m(head,new THREE.ConeGeometry(.2,.4,4),ec,q*.38,.6,0);e.rotation.z=-q*.35}}
+ if(sp.wings){const wm=M(sp.wings,{emissive:0x2a1a40,emissiveIntensity:.35});for(const q of[-1,1]){const w=new THREE.Group();w.position.set(q*.2,1.3,-.42);g.add(w);const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(.55,.32);sh.lineTo(.5,.1);sh.lineTo(.8,.1);sh.lineTo(.55,-.1);sh.lineTo(.62,-.32);sh.lineTo(.2,-.2);sh.closePath();const m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:false}),wm);m.scale.x=q;m.rotation.y=q*.5;m.castShadow=true;w.add(m)}}
  if(sp.beard){const bc=M(sp.beard);const b=_m(head,new THREE.ConeGeometry(.52,.9,5),bc,0,-.5,.28);b.rotation.x=Math.PI;b.scale.set(1,1,.6);_m(head,_sph(.3,6,5),bc,0,-.2,.5,false).scale.set(1.6,.6,.5)}
  if(sp.glasses){for(const q of[-1,1]){_m(head,new THREE.TorusGeometry(.15,.022,5,10),M(0x2a2630),q*.22,-.04,.6,false)}_m(head,new THREE.BoxGeometry(.1,.02,.02),M(0x2a2630),0,-.03,.62,false)}
  if(sp.scarf){const sc=_m(g,new THREE.TorusGeometry(.34,.11,5,9),M(sp.scarf),0,1.42,0);sc.rotation.x=Math.PI/2;_m(g,new THREE.BoxGeometry(.14,.5,.06),M(sp.scarf),.22,1.18,.34)}
@@ -169,6 +177,7 @@ function person(x,y,z,sc=1,name,kind){const g=new THREE.Group();g.position.set(x
  else if(window.__forceSpec){spec=window.__forceSpec;h=2.6*sc}
  else{const i=kind==='guard'?8:(typeof kind==='string'&&/^r\d+$/.test(kind))?+kind.slice(1):RESPOOL[(rnd()*RESPOOL.length)|0];spec=RSPEC[i];h=2.6*sc*(.9+rnd()*.2)}
  if(window.__forceJob&&JOBSPEC[window.__forceJob])spec={...spec,...JOBSPEC[window.__forceJob]};
+ if(window.__forceLook)spec={...spec,...window.__forceLook};
  const c=chibi(spec);const k=kind==='budi'?sc*1.02:h/2.9;c.scale.setScalar(k);g.add(c);g.add(blob(h*.2));
  const rig=c.userData.rig,ph=rnd()*6.28,bf=3+rnd()*2;
  SPR.push({s:c,base:0,bob:.05*k,bf,ph});WALK.push({rig,ph,bf,budi:kind==='budi'});
@@ -177,9 +186,11 @@ function person(x,y,z,sc=1,name,kind){const g=new THREE.Group();g.position.set(x
   g.userData.budi={sp:c,h,pose:0,gl,pl};
   g.userData.setPose=i=>{rig.pose=i}}
  if(name){const l=label(name,undefined,window.__forceLv);const ts=(window.TGG&&window.TGG.scale.x)||1;l.scale.multiplyScalar(.5/ts);l.position.y=h*(kind==='budi'?1.12:1.12)+.35/ts;g.add(l)}
+ if(window.__forceSay){const b=bubble(window.__forceSay),ts2=(window.TGG&&window.TGG.scale.x)||1;b.scale.multiplyScalar(.5/ts2);b.position.y=h*1.12+.72/ts2;b.visible=false;g.add(b);BUB.push({b,ph:BUB.length*2.3+Math.random()*3})}
  g.rotation.y=rnd()*6.28;(window.TGG||S).add(g);return g}
 window.__person=(...a)=>person(...a);
-function walkUpdate(tt){for(const w of WALK){const r=w.rig,t=tt*w.bf+w.ph,p=r.pose|0;
+function walkUpdate(tt){for(const o of BUB){const k=(tt+o.ph)%12;o.b.visible=k<3.8||window.__allSay}
+ for(const w of WALK){const r=w.rig,t=tt*w.bf+w.ph,p=r.pose|0;
  const sw=Math.sin(t)*.12;r.arms[0].rotation.x=r.base.aL.x+sw;r.arms[1].rotation.x=r.base.aR.x-sw;r.arms[1].rotation.z=r.base.aR.z;
  r.legs[0].rotation.x=0;r.legs[1].rotation.x=0;r.head.rotation.y=Math.sin(t*.4)*.25;
  if(w.budi){if(p===4||p===5||p===3){r.arms[1].rotation.z=-2.5+Math.sin(tt*6)*.25}else if(p===6){r.arms[1].rotation.x=-1.5;r.arms[1].rotation.z=-.15}else if(p===14){r.arms[1].rotation.z=-2.2+Math.sin(tt*14)*.3}else if(p===15){r.arms[1].rotation.z=-2.4;r.head.rotation.z=.15}}}}
@@ -426,7 +437,7 @@ function renderRT(rtId){curRT=rtId;window.__desaCol=desaColor(rtId);for(const o 
  const props=['basket','lantern','hammer','wave','broom','none'];
  const topIds=new Set(rs.filter(x=>x.id!=='budi'&&(x.exp||0)>0).sort((a,b)=>(b.exp||0)-(a.exp||0)).slice(0,8).map(x=>x.id));
  rs.slice(0,110).forEach((r,i)=>{if(r.id==='budi')return;let p=bslot[r.id];if(!p){const f=fronts.length?fronts[(rnd()*fronts.length)|0]:{x:0,z:12};const a=rnd()*6.28;p={x:f.x+Math.cos(a)*1.8,z:f.z+Math.sin(a)*1.8}}
-  window.__forceProp=props[(rnd()*6)|0];window.__forceJob=r.job||null;window.__forceLv=r.level||1;pmap[r.id]=person(p.x+(rnd()-.5)*.8,0,p.z+(rnd()-.5)*.8,.5,(i<6||topIds.has(r.id))?'@'+r.username:null);window.__forceJob=null;window.__forceLv=null});
+  window.__forceProp=props[(rnd()*6)|0];window.__forceJob=r.job||null;window.__forceLv=r.level||1;window.__forceLook=r.look&&Object.keys(r.look).length?r.look:null;window.__forceSay=(r.say&&r.say.day===DATA.day&&r.say.text&&r.say.text!=='...')?r.say.text:null;pmap[r.id]=person(p.x+(rnd()-.5)*.8,0,p.z+(rnd()-.5)*.8,.5,(i<6||topIds.has(r.id))?'@'+r.username:null);window.__forceJob=null;window.__forceLv=null;window.__forceSay=null;window.__forceLook=null});
  if(rtId==='rt01'){window.__forceShirt=0xe8363d;window.__forceHair=0x14101a;window.__forceProp='none';const bu=person(3,0,10.5,.62,'Pak RT Budi','budi');window.__forceShirt=null;window.__forceHair=null;bu.rotation.y=.35;pmap.budi=bu;window.BUDI=bu}
  if(EMPTY&&Q.has('balai')){const sl=slots[0],ry=Math.atan2(-sl.x,-sl.z);window.BALAI=BUILD.balai(sl.x,sl.z,ry);window.BALAI.visible=false;window.BALAI_POS=sl}
  window.TGG=TG;dynS=S.children.slice(n0);

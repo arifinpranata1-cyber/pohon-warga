@@ -47,3 +47,37 @@ const fakeFetch = async url => { const k = Object.keys(pages).find(k => url.incl
   assert.strictEqual(w2.residents.sari.job, step(newWorld('2026-11-19'), { followers: 2, comments: [c('sari', 'a', 1)] }).state.residents.sari.job, 'job acak harus deterministik');
   console.log('job/EXP/level OK: job acak, EXP maks 3/hari, ganti job 1x/minggu, deterministik');
 })();
+// Uji quest harian, koin pribadi, balon ucapan
+(() => {
+  const { step, newWorld, CFG } = require('../engine/engine.js');
+  const c = (u, t, i) => ({ user: u, text: t, likes: 0, ts: 0, id: u + t + i });
+  let w = newWorld('2026-11-19'), r;
+  r = step(w, { followers: 3, comments: [c('sari', 'halo', 1), c('sari', 'bikin warung', 2), c('sari', 'ronda @dedi', 3), c('dedi', 'halo', 4), c('dedi', 'anjing', 5)] }); w = r.state;
+  assert.ok(r.log.quest && r.log.quest.text && r.log.questBesok, 'quest hari ini dan besok harus ada');
+  assert.strictEqual(w.residents.dedi.koin >= 1, true, '1 koin untuk hari komen');
+  assert.ok(w.residents.sari.koin >= 1 && w.residents.sari.koin <= 2, 'koin maks 2 per hari');
+  assert.strictEqual(w.residents.dedi.say.text, '...', 'komen kasar disamarkan di balon');
+  assert.ok(r.log.events.length >= 0 && r.state.residents.sari.say.text.length <= 48);
+  const caption = require('../engine/engine.js'); // caption dipanggil di step
+  assert.ok(String(r.log.caption || '').includes('Quest besok'), 'caption memuat quest besok');
+  console.log('quest/koin/balon OK: quest harian, 1-2 koin per hari, komen kasar disamarkan');
+})();
+// Uji toko kosmetik
+(() => {
+  const { step, newWorld, CFG } = require('../engine/engine.js');
+  const c = (u, t, i) => ({ user: u, text: t, likes: 0, ts: 0, id: u + t + i });
+  assert.strictEqual(CFG.shop.filter(i => i.harga === 3).length, 5); assert.strictEqual(CFG.shop.filter(i => i.harga === 8).length, 5);
+  let w = newWorld('2026-11-19');
+  w = step(w, { followers: 2, comments: [c('sari', 'BELI SYAL', 1)] }).state;
+  assert.ok(!w.residents.sari.items || w.residents.sari.items.length === 0, 'koin kurang tidak boleh beli');
+  for (let i = 0; i < 3; i++) w = step(w, { followers: 2, comments: [c('sari', 'halo', 10 + i)] }).state; // 4 koin
+  let r = step(w, { followers: 2, comments: [c('sari', 'beli syal', 20)] }); w = r.state;
+  assert.deepStrictEqual(w.residents.sari.items, ['syal']); assert.ok(w.residents.sari.look.scarf, 'item langsung dipakai');
+  assert.ok(String(r.log.caption).includes('Belanja'), 'caption memuat belanja');
+  const k = w.residents.sari.koin; w = step(w, { followers: 2, comments: [c('sari', 'beli syal', 21)] }).state;
+  assert.strictEqual(w.residents.sari.items.length, 1, 'tidak bisa beli dua kali');
+  w.residents.sari.koin = 20; w = step(w, { followers: 2, comments: [c('sari', 'beli kacamata', 30)] }).state;
+  w = step(w, { followers: 2, comments: [c('sari', 'beli tas', 31), c('sari', 'beli cap', 32)] }).state;
+  assert.strictEqual(w.residents.sari.items.length, 3, 'maks 1 barang per hari: kacamata hari 1, lalu hanya tas di hari berikut');
+  console.log('toko OK: 5 item 3 koin + 5 item 8 koin, beli memotong koin, langsung dipakai, tidak dobel');
+})();
