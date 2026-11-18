@@ -1,0 +1,1 @@
+{"name":"pohon-warga","private":true,"scripts":{"hari":"node scripts/daily.js","test":"node scripts/test.js"}}
