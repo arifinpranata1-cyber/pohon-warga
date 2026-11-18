@@ -19,6 +19,8 @@ const CFG = {
     balai: { kas: 5, line: 'Balai ramai, rapat tak pernah selesai.' }, sumur: { food: 8, line: 'Air bersih mengalir, kebun makin subur.' },
     menara: { line: 'Menara tinggi, penjaga betah begadang.' }, kebun: { food: 6, line: 'Kebun bunga mekar, lebah ikut pindah.' },
     jembatan: { kas: 3, line: 'Warga tak perlu berenang lagi.' }, lampion: { kas: 1, line: 'Malam terang, anak-anak susah disuruh tidur.' } },
+  // v0.4 (spesifikasi bagian 11, 13): job acak, EXP, level. 3 job; ganti job 1x seminggu lewat komen 'JOB <nama>'.
+  jobs: ['ARCHER', 'SWORDMAN', 'MAGE'], expPerComment: 10, expMaxPerDay: 3, expPerLevel: 50, jobChangeDays: 7,
   nama: { rumah: 'Rumah', warung: 'Warung', balai: 'Balai', sumur: 'Sumur', menara: 'Menara', kebun: 'Kebun', jembatan: 'Jembatan', lampion: 'Lampion' },
 };
 function hash(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -37,6 +39,9 @@ const norm = s => s.toLowerCase();
 const hasKey = (text, keys) => keys.some(k => norm(text).includes(k));
 function parseTask(text) { for (const [t, ks] of Object.entries(CFG.taskKeys)) if (hasKey(text, ks)) return t; return null; }
 function parseBuild(text) { for (const [t, ks] of Object.entries(CFG.buildKeys)) if (hasKey(text, ks)) return t; return null; }
+const levelOf = exp => 1 + Math.floor((exp || 0) / CFG.expPerLevel);
+const randomJob = (key, worldId) => CFG.jobs[hash(key + '|job|' + worldId) % CFG.jobs.length];
+function parseJob(text) { const m = /\bjob\s+(archer|swordsman|swordman|mage)\b/i.exec(text); return m ? (m[1].toUpperCase() === 'SWORDSMAN' ? 'SWORDMAN' : m[1].toUpperCase()) : null; }
 const cleanName = u => CFG.banned.some(b => u.toLowerCase().includes(b)) ? 'warga' : u;
 
 function caption(S, prev, log) {
@@ -48,6 +53,10 @@ function caption(S, prev, log) {
   L.push(built.length ? 'Selesai: ' + built.map(e => `${CFG.nama[e.building]}. ${e.effect || ''}`.trim()).join(' ') : 'Selesai: belum ada.');
   if (log.proyek.length) L.push('Dikerjakan: ' + log.proyek.map(p => `${CFG.nama[p.building]} tahap ${p.tahap} dari ${p.total}`).join(', ') + '.');
   if (workers.length) L.push('Pekerja: ' + workers.join(', ') + '.');
+  const ups = log.events.filter(e => e.type === 'level_up').slice(0, 3);
+  if (ups.length) L.push('Naik level: ' + ups.map(e => `@${e.user} Lv${e.level}`).join(', ') + '.');
+  const jc = log.events.filter(e => e.type === 'job_change').slice(0, 3);
+  if (jc.length) L.push('Ganti job: ' + jc.map(e => `@${e.user} jadi ${e.to}`).join(', ') + '.');
   L.push(`Warga: ${prev.population} menjadi ${S.population}. Rumah: ${homes(prev)} menjadi ${homes(S)}.`);
   L.push(`Kas: ${S.kas} koin` + (S.kas < 0 ? ` (utang: ${-S.kas})` : '') + '.');
   L.push('Besok: ' + (S.queue[0] ? CFG.nama[S.queue[0].type] + ' dari antrean.' : 'menunggu usul baru.'));
@@ -69,13 +78,20 @@ function step(prev, input) {
     if (hasKey(c.text, ['keluar'])) { if (S.residents[key]) { S.residents[key].optOut = true; log.events.push({ type: 'opt_out', user: cleanName(c.user) }); } continue; }
     let r = S.residents[key];
     if (!r || r.optOut) {
-      r = S.residents[key] = { id: key, username: cleanName(c.user), rt: null, house: null, task: 'CARI', energy: CFG.startEnergy, joinedDay: S.day, optOut: false };
+      r = S.residents[key] = { id: key, username: cleanName(c.user), rt: null, house: null, task: 'CARI', energy: CFG.startEnergy, joinedDay: S.day, optOut: false, job: randomJob(key, S.worldId), exp: 0, level: 1, jobChangedDay: -99 };
       log.events.push({ type: 'join', user: r.username });
+    }
+    if (r.id !== 'budi') {
+      if (!r.job) { r.job = randomJob(key, S.worldId); r.exp = r.exp || 0; r.level = levelOf(r.exp); r.jobChangedDay = -99; }
+      const nj = parseJob(c.text);
+      if (nj && nj !== r.job && S.day - (r.jobChangedDay === undefined ? -99 : r.jobChangedDay) >= CFG.jobChangeDays) { log.events.push({ type: 'job_change', user: r.username, from: r.job, to: nj }); r.job = nj; r.jobChangedDay = S.day; }
+      if (r.expDay !== S.day) { r.expDay = S.day; r.expN = 0; }
+      if (r.expN < CFG.expMaxPerDay) { r.expN++; r.exp = (r.exp || 0) + CFG.expPerComment; const lv = levelOf(r.exp); if (lv > (r.level || 1)) { log.events.push({ type: 'level_up', user: r.username, level: lv, job: r.job }); r.level = lv; } }
     }
     const t = parseTask(c.text); if (t) { r.task = t; r.explicit = S.day; }
     const b = parseBuild(c.text);
     if (b) requests.push({ type: b, user: key, username: r.username, text: c.text, likes: c.likes || 0, ts: c.ts || 0 });
-    else if (!t) log.events.push({ type: 'unmatched', user: r.username });
+    else if (!t && !parseJob(c.text)) log.events.push({ type: 'unmatched', user: r.username });
   }
   // 2. population & RT assignment
   S.population = Math.max(input.followers, named().length);

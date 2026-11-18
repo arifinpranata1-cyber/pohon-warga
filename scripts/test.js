@@ -33,3 +33,17 @@ const fakeFetch = async url => { const k = Object.keys(pages).find(k => url.incl
   assert.ok(out2.includes('dilewati'), 'harus dilewati saat kosong');
   console.log('input manual OK: 2 komentar -> 2 warga, file dikosongkan, hari kosong dilewati');
 })();
+// Uji job, EXP, level (update 2, tahap 1)
+(() => {
+  const { step, newWorld } = require('../engine/engine.js');
+  let w = newWorld('2026-11-19'); const c = (u, t, i) => ({ user: u, text: t, likes: 0, ts: 0, id: u + t + i });
+  w = step(w, { followers: 3, comments: [c('sari', 'a', 1), c('sari', 'b', 2), c('sari', 'c', 3), c('sari', 'd', 4), c('dedi', 'JOB mage', 5)] }).state;
+  assert.ok(['ARCHER', 'SWORDMAN', 'MAGE'].includes(w.residents.sari.job), 'job awal harus acak dari 3 job');
+  assert.strictEqual(w.residents.sari.exp, 30, 'EXP maksimal 3 komentar per hari');
+  assert.strictEqual(w.residents.dedi.job, 'MAGE', 'ganti job lewat komentar');
+  w = step(w, { followers: 3, comments: [c('dedi', 'job archer', 6)] }).state;
+  assert.strictEqual(w.residents.dedi.job, 'MAGE', 'ganti job dibatasi 1x seminggu');
+  const w2 = step(newWorld('2026-11-19'), { followers: 2, comments: [c('sari', 'a', 1)] }).state;
+  assert.strictEqual(w2.residents.sari.job, step(newWorld('2026-11-19'), { followers: 2, comments: [c('sari', 'a', 1)] }).state.residents.sari.job, 'job acak harus deterministik');
+  console.log('job/EXP/level OK: job acak, EXP maks 3/hari, ganti job 1x/minggu, deterministik');
+})();
