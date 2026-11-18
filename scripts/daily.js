@@ -3,6 +3,7 @@
 const fs = require('fs'), path = require('path');
 const { step, newWorld, rng } = require('../engine/engine');
 const { fetchInput } = require('./ig');
+const MANUAL = process.env.MANUAL_FILE || path.join(__dirname, '..', 'manual', 'input.txt');
 
 const DATA = process.env.DATA_DIR || path.join(__dirname, '..', 'site', 'data');
 const KEEP_DAYS = 30;
@@ -18,13 +19,32 @@ function fakeInput(day) {
   return { followers, comments, newIds: comments.map(c => c.id) };
 }
 
+// Input manual: baris "followers: N" dan "@user teks komentar". Mengembalikan null kalau kosong.
+function manualInput(world) {
+  let raw; try { raw = fs.readFileSync(MANUAL, 'utf8'); } catch { return null; }
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if (!lines.length) return null;
+  let followers = world.population || 1; const comments = []; const day = world.day + 1;
+  for (const l of lines) {
+    const f = l.match(/^followers\s*:\s*(\d+)$/i); if (f) { followers = parseInt(f[1], 10); continue; }
+    const m = l.match(/^@?([A-Za-z0-9._]{1,30})\s+(.+)$/); if (!m) { console.log('Baris dilewati (format salah):', l); continue; }
+    comments.push({ id: `m${day}-${comments.length}`, user: m[1].toLowerCase(), text: m[2], likes: 0, ts: comments.length });
+  }
+  followers = Math.max(followers, new Set(comments.map(c => c.user)).size);
+  return { followers, comments, newIds: comments.map(c => c.id), manual: true };
+}
+
 (async () => {
   fs.mkdirSync(DATA, { recursive: true });
   let world = read('world.json', null) || newWorld(todayWIB());
   const cursor = read('cursor.json', { seen: [] });
-  const useFake = args.includes('--fake') || !process.env.IG_TOKEN;
-  const input = useFake ? fakeInput(world.day + 1) : await fetchInput({ token: process.env.IG_TOKEN, seen: new Set(cursor.seen) });
-  console.log(`${useFake ? 'DATA PALSU' : 'Instagram'}: ${input.followers} followers, ${input.comments.length} komentar baru`);
+  const useFake = args.includes('--fake');
+  let input, source;
+  if (useFake) { input = fakeInput(world.day + 1); source = 'DATA PALSU'; }
+  else if (process.env.IG_TOKEN) { input = await fetchInput({ token: process.env.IG_TOKEN, seen: new Set(cursor.seen) }); source = 'Instagram'; }
+  else { input = manualInput(world); source = 'Input manual'; }
+  if (!input) { console.log('Tidak ada IG_TOKEN dan manual/input.txt kosong, dilewati.'); return; }
+  console.log(`${source}: ${input.followers} followers, ${input.comments.length} komentar baru`);
 
   const out = step(world, { followers: input.followers, comments: input.comments });
   if (args.includes('--dry')) { console.log(JSON.stringify(out.log.stats)); return; }
@@ -33,5 +53,6 @@ function fakeInput(day) {
   write('world.json', out.state);
   write('days.json', days.slice(-KEEP_DAYS));
   write('cursor.json', { seen: [...cursor.seen, ...input.newIds].slice(-5000) });
+  if (input.manual && !args.includes('--keep')) fs.writeFileSync(MANUAL, '# Sudah diproses. Tempel komentar hari berikutnya di bawah ini, satu per baris: @username teks komentar\n# Baris pertama (opsional): followers: 25\n');
   console.log(`Hari ${out.log.day}:`, JSON.stringify(out.log.stats));
 })().catch(e => { console.error(e.message); process.exit(1); });

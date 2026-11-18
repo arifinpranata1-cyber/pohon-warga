@@ -19,3 +19,17 @@ const fakeFetch = async url => { const k = Object.keys(pages).find(k => url.incl
   const a = run(), b = run(); assert.strictEqual(a, b, 'tidak deterministik'); assert.ok(a.length > 100);
   const w = JSON.parse(a); console.log('5 hari OK: hari', w.day, '| populasi', w.population, '| RT', w.rts.length, '| bangunan', Object.keys(w.buildings).length);
 })().catch(e => { console.error('GAGAL', e.message); process.exit(1); });
+// Uji input manual
+(() => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'pwm-')), f = path.join(d, 'input.txt');
+  fs.writeFileSync(f, '# contoh\nfollowers: 12\n@Sari bikin warung dong\nbudi_a jembatan!\nrusak\n');
+  const env = { ...process.env, DATA_DIR: d, MANUAL_FILE: f, IG_TOKEN: '' };
+  const out = execFileSync('node', [path.join(__dirname, 'daily.js')], { env }).toString();
+  assert.ok(out.includes('Input manual: 12 followers, 2 komentar'), out);
+  const w = JSON.parse(fs.readFileSync(path.join(d, 'world.json'), 'utf8'));
+  assert.strictEqual(w.day, 1); assert.ok(w.residents.sari && w.residents.budi_a, 'warga manual tidak terdaftar');
+  assert.ok(fs.readFileSync(f, 'utf8').includes('Sudah diproses'), 'file tidak dikosongkan');
+  const out2 = execFileSync('node', [path.join(__dirname, 'daily.js')], { env }).toString();
+  assert.ok(out2.includes('dilewati'), 'harus dilewati saat kosong');
+  console.log('input manual OK: 2 komentar -> 2 warga, file dikosongkan, hari kosong dilewati');
+})();
