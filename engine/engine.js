@@ -7,9 +7,19 @@ const CFG = {
   buildDays: { rumah: 1, warung: 2, balai: 3, sumur: 2, menara: 3, kebun: 1, jembatan: 2, lampion: 1 },
   buildKeys: { rumah: ['rumah', 'tinggal'], warung: ['warung', 'makan'], balai: ['balai', 'kumpul'], sumur: ['sumur', 'air'],
     menara: ['menara'], kebun: ['kebun', 'taman'], jembatan: ['jembatan'], lampion: ['lampu', 'lampion'] },
-  taskKeys: { RONDA: ['ronda', 'jaga', 'siaga'], MASAK: ['masak', 'dapur'], CARI: ['cari', 'kayu'], PERBAIKI: ['perbaiki', 'tukang'], RAWAT: ['rawat', 'siram'], TIDUR: ['tidur', 'istirahat'] },
-  energyCost: { RONDA: 15, MASAK: 10, CARI: 12, PERBAIKI: 12, RAWAT: 10, TIDUR: -40 },
+  taskKeys: { RONDA: ['ronda', 'jaga', 'siaga'], MASAK: ['masak', 'dapur'], CARI: ['cari', 'kayu'], PERBAIKI: ['perbaiki', 'tukang'], RAWAT: ['rawat', 'siram'], TIDUR: ['tidur', 'istirahat'], KERJA: ['kerja', 'bangun', 'proyek'] },
+  energyCost: { RONDA: 15, MASAK: 10, CARI: 12, PERBAIKI: 12, RAWAT: 10, TIDUR: -40, KERJA: 12 },
   banned: ['anjing', 'bangsat', 'kontol', 'memek', 'babi'],
+  // v0.3 (spesifikasi bagian 10): kas, proyek bertahap. Angka awal = tebakan, disetel setelah uji 14 hari.
+  startKas: 30, kasPerActive: 0.2, belanjaBesar: 200,
+  project: { rumah: { stages: 1, days: 1, need: 1, biaya: 1 }, warung: { stages: 1, days: 2, need: 2, biaya: 3 }, balai: { stages: 2, days: 2, need: 3, biaya: 4 },
+    sumur: { stages: 1, days: 2, need: 2, biaya: 3 }, menara: { stages: 3, days: 2, need: 3, biaya: 5 }, kebun: { stages: 1, days: 1, need: 1, biaya: 2 },
+    jembatan: { stages: 3, days: 2, need: 3, biaya: 5 }, lampion: { stages: 1, days: 1, need: 1, biaya: 1 } },
+  effects: { rumah: { kas: 2, line: 'Rumah baru berdiri, warga makin betah.' }, warung: { food: 10, wood: -2, line: 'Warung buka, kayu habis jadi meja.' },
+    balai: { kas: 5, line: 'Balai ramai, rapat tak pernah selesai.' }, sumur: { food: 8, line: 'Air bersih mengalir, kebun makin subur.' },
+    menara: { line: 'Menara tinggi, penjaga betah begadang.' }, kebun: { food: 6, line: 'Kebun bunga mekar, lebah ikut pindah.' },
+    jembatan: { kas: 3, line: 'Warga tak perlu berenang lagi.' }, lampion: { kas: 1, line: 'Malam terang, anak-anak susah disuruh tidur.' } },
+  nama: { rumah: 'Rumah', warung: 'Warung', balai: 'Balai', sumur: 'Sumur', menara: 'Menara', kebun: 'Kebun', jembatan: 'Jembatan', lampion: 'Lampion' },
 };
 function hash(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function rng(seedStr) { let a = hash(seedStr); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -17,7 +27,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const addDays = (d, n) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0, 10);
 
 function newWorld(startDate, worldId = 'pohon-warga') {
-  return { worldId, day: 0, date: addDays(startDate, -1), population: 1, pools: { food: 50, wood: 12 },
+  return { worldId, day: 0, date: addDays(startDate, -1), population: 1, kas: CFG.startKas, pools: { food: 50, wood: 12 },
     rts: [{ id: 'rt01', number: 1, stage: 1, treeHealth: 100, pop: 1 }],
     residents: { budi: { id: 'budi', username: 'Pak RT Budi', rt: 'rt01', house: 'balai', task: 'RAWAT', energy: 100, joinedDay: 0, optOut: false } },
     buildings: [{ id: 'b0', type: 'balai', rt: 'rt01', status: 'done', damage: 0, by: 'budi', comment: null, day: 0 }],
@@ -29,8 +39,24 @@ function parseTask(text) { for (const [t, ks] of Object.entries(CFG.taskKeys)) i
 function parseBuild(text) { for (const [t, ks] of Object.entries(CFG.buildKeys)) if (hasKey(text, ks)) return t; return null; }
 const cleanName = u => CFG.banned.some(b => u.toLowerCase().includes(b)) ? 'warga' : u;
 
+function caption(S, prev, log) {
+  const homes = s => s.buildings.filter(b => b.type === 'rumah' && b.status === 'done').length;
+  const built = log.events.filter(e => e.type === 'built');
+  const workers = Object.values(S.residents).filter(r => r.task === 'KERJA' && !r.optOut && r.id !== 'budi').map(r => '@' + r.username).sort().slice(0, 3);
+  const L = [`Day ${S.day} Pohon Warga.`];
+  L.push(log.usul_teratas ? `Usul teratas: @${log.usul_teratas.user}, "${log.usul_teratas.text}".` : 'Usul teratas: belum ada, Pak RT menunggu komentar.');
+  L.push(built.length ? 'Selesai: ' + built.map(e => `${CFG.nama[e.building]}. ${e.effect || ''}`.trim()).join(' ') : 'Selesai: belum ada.');
+  if (log.proyek.length) L.push('Dikerjakan: ' + log.proyek.map(p => `${CFG.nama[p.building]} tahap ${p.tahap} dari ${p.total}`).join(', ') + '.');
+  if (workers.length) L.push('Pekerja: ' + workers.join(', ') + '.');
+  L.push(`Warga: ${prev.population} menjadi ${S.population}. Rumah: ${homes(prev)} menjadi ${homes(S)}.`);
+  L.push(`Kas: ${S.kas} koin` + (S.kas < 0 ? ` (utang: ${-S.kas})` : '') + '.');
+  L.push('Besok: ' + (S.queue[0] ? CFG.nama[S.queue[0].type] + ' dari antrean.' : 'menunggu usul baru.'));
+  return L.join('\n');
+}
+
 function step(prev, input) {
   const S = JSON.parse(JSON.stringify(prev));
+  if (S.kas === undefined) S.kas = CFG.startKas;
   S.day += 1; S.date = addDays(prev.date, 1);
   const rand = rng(S.date + S.worldId);
   const log = { day: S.day, date: S.date, events: [], featured_comments: [], notes: [] };
@@ -66,19 +92,22 @@ function step(prev, input) {
 
   // 3. tasks, energy, production
   const unnamed = S.population - named().length;
-  let food = 0, wood = 0, D = 0, repairers = 0, ronda = 0;
+  let food = 0, wood = 0, D = 0, repairers = 0, ronda = 0, workers = 0, active = 0;
+  let slots = S.buildings.filter(b => b.status === 'building' && b.need).reduce((a, b) => a + b.need, 0);
   const need = S.population * 0.5, warned = prev.dragon.pendingAttack;
   for (const r of named()) {
-    if (r.explicit !== S.day && r.id !== 'budi') r.task = warned ? 'RONDA' : (S.pools.food < need * 0.5 ? 'MASAK' : 'CARI'); // auto-assign (kerja bakti) unless chosen today
+    if (r.explicit !== S.day && r.id !== 'budi') r.task = warned ? 'RONDA' : (S.pools.food < need * 0.5 ? 'MASAK' : (slots > 0 ? (slots--, 'KERJA') : 'CARI')); // auto-assign (kerja bakti) unless chosen today
     if (r.energy < 30) r.task = 'TIDUR';
     const t = r.task;
     if (t === 'TIDUR') r.energy = clamp(r.energy + 40, 0, 100);
     else {
-      r.energy = clamp(r.energy - CFG.energyCost[t], 0, 100);
+      r.energy = clamp(r.energy - CFG.energyCost[t], 0, 100); active++;
+      if (t === 'KERJA') workers++;
       if (t === 'MASAK') food += 8; if (t === 'CARI') wood += 2; if (t === 'PERBAIKI') repairers++;
       if (t === 'RONDA') { D += 3; ronda++; } if (t === 'RAWAT') D += 1;
     }
   }
+  S.kas += Math.floor(active * CFG.kasPerActive);
   food += unnamed * 0.5; wood += Math.floor(unnamed / 20); D += unnamed * 0.1;
   S.pools.food += food; S.pools.wood += wood;
   S.pools.food = Math.round((S.pools.food - S.population * 0.5) * 10) / 10;
@@ -91,19 +120,41 @@ function step(prev, input) {
     const inRt = named().filter(r => r.rt === rt.id).length;
     if (inRt > homes * CFG.houseCap || homes < Math.min(6, Math.ceil(rt.pop / 40))) { S.buildings.push({ id: 'b' + S.buildings.length, type: 'rumah', rt: rt.id, status: 'done', damage: 0, by: null, comment: null, day: S.day }); log.events.push({ type: 'auto_house', rt: rt.id }); }
   }
+  if (S.kas >= CFG.belanjaBesar && !S.queue.some(q => q.budi) && !S.buildings.some(b => b.status === 'building' && b.by === 'budi')) {
+    const t = ['sumur', 'menara', 'kebun', 'jembatan'][Math.floor(rand() * 4)];
+    S.queue.unshift({ type: t, user: 'budi', username: 'Pak RT Budi', text: 'Belanja besar dari kas desa', likes: 0, ts: 0, wait: 0, day: S.day, budi: true });
+    log.events.push({ type: 'belanja_besar', building: t });
+  }
   requests.sort((a, b) => b.likes - a.likes || a.ts - b.ts);
   S.queue = S.queue.filter(q => { if (S.day - q.day > 3) { log.events.push({ type: 'request_expired', user: q.username, building: q.type }); return false; } return true; });
   for (const q of requests) S.queue.push({ ...q, wait: 0, day: S.day });
   const cap = Math.min(5, 1 + Math.floor(S.population / 50));
-  let started = 0;
-  for (const b of S.buildings.filter(x => x.status === 'building')) { b.left -= 1 + (wood > 0 ? 1 : 0) * 0; if (b.left <= 0) { b.status = 'done'; log.events.push({ type: 'built', building: b.type, by: b.byName }); } }
+  let started = 0, blocked = false, pool = workers;
+  let busyNeed = S.buildings.filter(b => b.status === 'building' && b.need).reduce((x, b) => x + b.need, 0); // pekerja yang dibutuhkan proyek berjalan
+  for (const b of S.buildings.filter(x => x.status === 'building')) {
+    if (!b.need) { b.left -= 1; if (b.left <= 0) { b.status = 'done'; log.events.push({ type: 'built', building: b.type, by: b.byName }); } continue; } // proyek lama (v0.1)
+    const w = Math.min(pool, b.need); pool -= w;
+    b.progress = (b.progress || 0) + (w >= b.need ? 1 : w / b.need);
+    if (b.progress + 1e-9 >= b.days) {
+      b.progress = 0;
+      if (b.tahap >= b.tahapTotal) {
+        b.status = 'done'; const fx = CFG.effects[b.type] || {};
+        S.kas += fx.kas || 0; S.pools.food = Math.max(0, S.pools.food + (fx.food || 0)); S.pools.wood = Math.max(0, S.pools.wood + (fx.wood || 0));
+        log.events.push({ type: 'built', building: b.type, by: b.byName, effect: fx.line });
+      } else { b.tahap += 1; S.kas -= b.biaya; log.events.push({ type: 'stage_done', building: b.type, tahap: b.tahap - 1, total: b.tahapTotal }); }
+    }
+  }
   for (const q of [...S.queue]) {
     if (started >= cap) break; if (S.pools.wood < CFG.cost[q.type]) continue;
-    S.pools.wood -= CFG.cost[q.type]; started++; S.queue.splice(S.queue.indexOf(q), 1);
-    S.buildings.push({ id: 'b' + S.buildings.length, type: q.type, rt: (S.residents[q.user] && S.residents[q.user].rt) || 'rt01', status: 'building', left: CFG.buildDays[q.type], damage: 0, by: q.user, byName: q.username, comment: q.text, day: S.day });
+    const pd = CFG.project[q.type];
+    if (busyNeed + pd.need > Math.max(3, Math.floor(named().length * 0.6))) continue; // jangan mulai proyek baru kalau pekerja tidak cukup
+    if (pd.stages > 1 && S.kas < 0) { blocked = true; continue; } // utang menahan proyek besar
+    S.pools.wood -= CFG.cost[q.type]; S.kas -= pd.biaya; started++; busyNeed += pd.need; S.queue.splice(S.queue.indexOf(q), 1);
+    S.buildings.push({ id: 'b' + S.buildings.length, type: q.type, rt: (S.residents[q.user] && S.residents[q.user].rt) || 'rt01', status: 'building', tahap: 1, tahapTotal: pd.stages, days: pd.days, need: pd.need, biaya: pd.biaya, progress: 0, damage: 0, by: q.user, byName: q.username, comment: q.text, day: S.day });
     log.events.push({ type: 'build_start', building: q.type, by: q.username });
-    if (log.featured_comments.length < 4) log.featured_comments.push({ user: q.username, text: q.text, likes: q.likes, building: q.type });
+    if (!q.budi && log.featured_comments.length < 4) log.featured_comments.push({ user: q.username, text: q.text, likes: q.likes, building: q.type });
   }
+  if (blocked) log.events.push({ type: 'utang_menahan_proyek' });
   // repairs
   let rep = repairers * 1;
   for (const b of S.buildings) while (b.damage > 0 && rep > 0 && S.pools.wood > 0) { b.damage--; rep--; S.pools.wood--; }
@@ -127,7 +178,11 @@ function step(prev, input) {
   }
   const p = Math.min(0.35, 0.14 + 0.01 * S.population / 100);
   if (S.day >= 4 && S.day - dr.lastAttackDay >= 2 && !dr.pendingAttack && rand() < p) { dr.pendingAttack = true; dr.warning = true; log.events.push({ type: 'dragon_warning' }); }
-  log.stats = { population: S.population, named: named().length, food: S.pools.food, wood: S.pools.wood, buildings: S.buildings.filter(b => b.status === 'done').length, queue: S.queue.length };
+  log.stats = { population: S.population, named: named().length, food: S.pools.food, wood: S.pools.wood, kas: S.kas, utang: Math.max(0, -S.kas), buildings: S.buildings.filter(b => b.status === 'done').length, queue: S.queue.length };
+  const top = requests[0];
+  log.usul_teratas = top ? { user: top.username, text: top.text, likes: top.likes, building: top.type } : null;
+  log.proyek = S.buildings.filter(b => b.status === 'building').map(b => ({ building: b.type, tahap: b.tahap || 1, total: b.tahapTotal || 1, by: b.byName }));
+  log.caption = caption(S, prev, log);
   S.log = undefined; return { state: S, log };
 }
 module.exports = { step, newWorld, CFG, rng, hash };
