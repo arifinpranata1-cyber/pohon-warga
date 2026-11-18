@@ -2,7 +2,12 @@ name: Hari baru Pohon Warga
 on:
   schedule:
     - cron: '30 12 * * *'   # 19:30 WIB (GitHub bisa terlambat beberapa menit)
-  workflow_dispatch: {}     # tombol jalankan manual
+  workflow_dispatch:        # tombol jalankan manual
+    inputs:
+      dry:
+        description: 'Tes saja (baca Instagram, tidak mengubah desa)'
+        type: boolean
+        default: true
 permissions:
   contents: write
 concurrency: pohon-warga-daily
@@ -17,7 +22,7 @@ jobs:
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
-        run: node scripts/daily.js
+        run: node scripts/daily.js ${{ inputs.dry && '--dry' || '' }}
       - name: Simpan hasil
         run: |
           git config user.name "pohon-warga-bot"
