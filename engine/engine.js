@@ -137,7 +137,7 @@ function step(prev, input) {
   const q = questFor(S.worldId, S.day); let qDone = 0; const qNames = [];
   for (const [key, cs] of Object.entries(byUser)) { const r = S.residents[key]; if (!r || r.optOut || r.id === 'budi') continue;
     r.koin = (r.koin || 0) + 1; if (q.check(cs)) { r.koin += 1; qDone++; qNames.push(r.username); } }
-  log.quest = { id: q.id, text: q.text, selesai: qDone, nama: qNames.slice(0, 3) }; S.questNext = questFor(S.worldId, S.day + 1).text; log.questBesok = questFor(S.worldId, S.day + 1).text;
+  log.quest = { id: q.id, text: q.text, selesai: qDone, nama: qNames.slice(0, 3) }; S.questNext = questFor(S.worldId, S.day + 1).text; S.questLast = { text: q.text, selesai: qDone, nama: qNames.slice(0, 3) }; log.questBesok = questFor(S.worldId, S.day + 1).text;
   // 2. population & RT assignment
   S.population = Math.max(input.followers, named().length);
   let left = S.population;
