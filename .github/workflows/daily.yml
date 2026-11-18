@@ -1,0 +1,27 @@
+name: Hari baru Pohon Warga
+on:
+  schedule:
+    - cron: '5 12 * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: pohon-warga-daily
+jobs:
+  day:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Jalankan satu hari
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+        run: |
+          if [ -z "$IG_TOKEN" ]; then echo "IG_TOKEN belum ada, dilewati"; exit 0; fi
+          node scripts/daily.js
+      - name: Simpan hasil
+        run: |
+          git config user.name "pohon-warga-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add site/data
+          git diff --cached --quiet || (git commit -m "Hari baru" && git push)
