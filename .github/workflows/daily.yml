@@ -1,8 +1,8 @@
 name: Hari baru Pohon Warga
 on:
   schedule:
-    - cron: '5 12 * * *'
-  workflow_dispatch: {}
+    - cron: '5 12 * * *'   # 19:05 WIB (GitHub bisa terlambat beberapa menit)
+  workflow_dispatch: {}     # tombol jalankan manual
 permissions:
   contents: write
 concurrency: pohon-warga-daily
@@ -16,12 +16,11 @@ jobs:
       - name: Jalankan satu hari
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
-        run: |
-          if [ -z "$IG_TOKEN" ]; then echo "IG_TOKEN belum ada, dilewati"; exit 0; fi
-          node scripts/daily.js
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: node scripts/daily.js
       - name: Simpan hasil
         run: |
           git config user.name "pohon-warga-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add site/data
+          git add site/data manual
           git diff --cached --quiet || (git commit -m "Hari baru" && git push)
