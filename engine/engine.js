@@ -193,13 +193,13 @@ function step(prev, input) {
   let started = 0, blocked = false, pool = workers;
   let busyNeed = S.buildings.filter(b => b.status === 'building' && b.need).reduce((x, b) => x + b.need, 0); // pekerja yang dibutuhkan proyek berjalan
   for (const b of S.buildings.filter(x => x.status === 'building')) {
-    if (!b.need) { b.left -= 1; if (b.left <= 0) { b.status = 'done'; log.events.push({ type: 'built', building: b.type, by: b.byName }); } continue; } // proyek lama (v0.1)
+    if (!b.need) { b.left -= 1; if (b.left <= 0) { b.status = 'done'; b.doneDay = S.day; log.events.push({ type: 'built', building: b.type, by: b.byName }); } continue; } // proyek lama (v0.1)
     const w = Math.min(pool, b.need); pool -= w;
     b.progress = (b.progress || 0) + (w >= b.need ? 1 : w / b.need);
     if (b.progress + 1e-9 >= b.days) {
       b.progress = 0;
       if (b.tahap >= b.tahapTotal) {
-        b.status = 'done'; const fx = CFG.effects[b.type] || {};
+        b.status = 'done'; b.doneDay = S.day; const fx = CFG.effects[b.type] || {};
         S.kas += fx.kas || 0; S.pools.food = Math.max(0, S.pools.food + (fx.food || 0)); S.pools.wood = Math.max(0, S.pools.wood + (fx.wood || 0));
         log.events.push({ type: 'built', building: b.type, by: b.byName, effect: fx.line });
       } else { b.tahap += 1; S.kas -= b.biaya; log.events.push({ type: 'stage_done', building: b.type, tahap: b.tahap - 1, total: b.tahapTotal }); }
