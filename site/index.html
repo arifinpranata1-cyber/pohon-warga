@@ -11,23 +11,24 @@ html,body{margin:0;background:#1a1466;overflow:hidden;font-family:Poppins,'Helve
 <div id="ui"><input id="q" placeholder="Cari namamu (tanpa @)"><div id="res"></div><span class="btn" id="tg"></span><span class="btn" id="qs">🎯 Quest</span><span class="btn" id="shp">🛒 Toko</span></div><div class="card"><span class="tag" id="tag">SENJA</span><h3 id="h3">Lampu-lampu mulai menyala.</h3><div class="cm" id="c1"><i>@dewi_ananda</i> membawa buah ke dapur · <i>@raka_wp</i> memperbaiki jembatan</div></div>
 <script type="importmap">{"imports":{"three":"./lib/three/build/three.module.js","three/addons/":"./lib/three/examples/jsm/"}}</script>
 <script type="module">
-import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 try{await Promise.all(['400 14px','500 14px','700 14px','700 52px'].map(f=>document.fonts.load(f+' Poppins')))}catch(e){}
 const _q=new URLSearchParams(location.search);let MODE=_q.get('m')||(_q.has('night')?'malam':null);if(!MODE){const h=(new Date().getUTCHours()+7)%24;MODE=(h>=6&&h<16)?'siang':(h>=16&&h<19)?'senja':'malam'}const NIGHT=MODE==='malam',DAY=MODE==='siang';const DRAGON=location.search.includes('dragon');const EMPTY=_q.has('empty');
 const W=innerWidth,H=innerHeight;const R=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,preserveDrawingBuffer:true});
-R.setSize(W,H,false);R.shadowMap.enabled=true;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=NIGHT?.9:(DAY?1.5:1.35);R.outputColorSpace=THREE.SRGBColorSpace;
+R.setSize(W,H,false);R.shadowMap.enabled=true;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=NIGHT?.9:(DAY?1.15:1.35);R.outputColorSpace=THREE.SRGBColorSpace;
 const S=new THREE.Scene();
 {const c=document.createElement('canvas');c.width=4;c.height=512;const g=c.getContext('2d');const gr=g.createLinearGradient(0,0,0,512);
  if(NIGHT){gr.addColorStop(0,'#02011a');gr.addColorStop(.5,'#0a0a45');gr.addColorStop(.8,'#1c1260');gr.addColorStop(1,'#3a1a66')}else if(DAY){gr.addColorStop(0,'#7cc4f2');gr.addColorStop(.4,'#b9dcf5');gr.addColorStop(.7,'#ffe3b0');gr.addColorStop(1,'#ffcf94')}else{gr.addColorStop(0,'#3B2C9A');gr.addColorStop(.4,'#8E47C2');gr.addColorStop(.7,'#FF7F8F');gr.addColorStop(1,'#FFD08A')}
  g.fillStyle=gr;g.fillRect(0,0,4,512);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;S.background=t}
 S.fog=new THREE.Fog(NIGHT?0x0b0a2e:(DAY?0xf3d9b0:0xe9a7c0),140,300);
 const cam=new THREE.PerspectiveCamera(30,W/H,1,500);cam.position.set(14,48,160);cam.lookAt(0,7,0);
-S.add(new THREE.HemisphereLight(NIGHT?0x6a6aef:(DAY?0xfff0d8:0xc9a8ff),NIGHT?0x2a5a6a:(DAY?0x7fd9a6:0x3fbf8f),NIGHT?.55:(DAY?2.3:1.9)));
+S.add(new THREE.HemisphereLight(NIGHT?0x6a6aef:(DAY?0xfff0d8:0xc9a8ff),NIGHT?0x2a5a6a:(DAY?0x7fd9a6:0x3fbf8f),NIGHT?.55:(DAY?1.7:1.9)));
 if(NIGHT){S.add(new THREE.AmbientLight(0x6a5ae0,.18));const fill=new THREE.DirectionalLight(0xffb87a,.22);fill.position.set(30,14,40);S.add(fill);const rim=new THREE.DirectionalLight(0x7ad0ff,.5);rim.position.set(0,20,-40);S.add(rim)}
-const sun=new THREE.DirectionalLight(NIGHT?0x7f90e8:(DAY?0xffe2b0:0xffc98a),NIGHT?.3:(DAY?4.6:4.2));sun.position.set(-30,24,30);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
+const sun=new THREE.DirectionalLight(NIGHT?0x7f90e8:(DAY?0xffe2b0:0xffc98a),NIGHT?.3:(DAY?3.3:4.2));sun.position.set(-30,24,30);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
 Object.assign(sun.shadow.camera,{left:-44,right:44,top:44,bottom:-34,near:1,far:260});sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;S.add(sun);
 let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
 const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,flatShading:true,roughness:.85,metalness:0,...o});
+window.__GLB=null;if(!_q.has('oldbody')){try{const _L=new GLTFLoader();const [_b,_k,_w]=await Promise.all([_L.loadAsync('assets/warga_base.glb'),_L.loadAsync('assets/warga_kit.glb'),_L.loadAsync('assets/warga_weapons.glb')]);const parts={},kit={},weapons={};_b.scene.traverse(o=>{if(o.isMesh)parts[o.name.replace(/\.\d+$/,'')]=o});_k.scene.traverse(o=>{if(!o.isMesh&&/^(Hair|Hat|Bow|Mustache)_/.test(o.name))kit[o.name.replace(/\.\d+$/,'')]=o});_w.scene.traverse(o=>{if(!o.isMesh&&/^Weapon_/.test(o.name))weapons[o.name.replace(/\.\d+$/,'')]=o});window.__GLB={parts,kit,weapons}}catch(e){console.warn('GLB gagal',e)}}
 const lamp=new THREE.MeshStandardMaterial({color:0xffc227,emissive:0xff9a1f,emissiveIntensity:NIGHT?3:(DAY?.4:3)});
 const winMat=new THREE.MeshStandardMaterial({color:0xffc227,emissive:0xff9a1f,emissiveIntensity:NIGHT?3:(DAY?.5:2.2),flatShading:true});
 const add=(m,x,y,z,p=(window.TGG||S))=>{m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;p.add(m);return m};
@@ -90,41 +91,62 @@ const RSPEC=[
  {skin:'light',hair:0x6a4a2a,style:'short',shirt:0x4a78c8,pants:0x3a4a6a,hat:'hard',prop:'plank'},
  {skin:'tan',hair:0x9a4ad8,style:'short',shirt:0xa890e0,pants:0x1c2040,prop:'bucket'}];
 const BSPEC={skin:'pale',hair:0x3a2418,style:'short',shirt:0xe8363d,pants:0x1c1a3a,hat:'top',must:0x2a1a10,mono:1,cape:1,prop:'staff',budi:1};
-function chibi(sp){
+const GS=2.96,GHAT={cap:'Hat_CapBlue',hard:'Hat_HardHat',straw:'Hat_Straw',songkok:'Hat_Peci',helm:'Hat_Helm',chef:'Hat_Chef',top:'Hat_Top',hood:'Hat_Hood',knight:'Hat_Knight',horns:'Hat_Horns',wizard:'Hat_Wizard',archer:'Hat_Archer',bunny:'Hat_Bunny',cat:'Hat_Cat'},GDEF={Hat_Hood:0xf2f2f6,Hat_Knight:0xc9ced8,Hat_Horns:0xd9dde6,Hat_Wizard:0x5a3aa8,Hat_Archer:0x3a8a4a,Hat_Bunny:0xf4f0f4,Hat_Cat:0x3a3440},GHAIR={bob:'Hair_Bob',side:'Hair_Bob',short:'Hair_Short',bun:'Hair_Kuncir',pigtails:'Hair_Kuncir',spiky:'Hair_Jambul'};
+function glGrp(parent,pScale,piv){const v=new THREE.Group();v.scale.setScalar(GS/pScale);v.userData.piv=new THREE.Vector3(piv.x/GS,piv.y/GS,piv.z/GS);parent.add(v);return v}
+function glAdd(v,name,mat){const t=window.__GLB.parts[name];if(!t)return;const m=new THREE.Mesh(t.geometry,mat||t.material);m.position.copy(t.position).sub(v.userData.piv);m.quaternion.copy(t.quaternion);m.castShadow=true;v.add(m);return m}
+function glHead(head,sk,dk){const v=glGrp(head,1.3,head.position);for(const n of['Head','Ear_L','Ear_R','Nose'])glAdd(v,n,sk);for(const n of['Eye_L','Eye_R'])glAdd(v,n,dk);const bl=M(0xff7f95);glAdd(v,'Blush_L',bl);glAdd(v,'Blush_R',bl);glAdd(v,'Mouth',M(0x4a1410))}
+function glTorso(g,sh){const v=glGrp(g,1,new THREE.Vector3());glAdd(v,'Torso',sh)}
+function glLeg(p,s,pm,shoe){p.position.set(s*.075*GS,.26*GS,0);const v=glGrp(p,1,p.position),X=s>0?'L':'R';glAdd(v,'Leg_'+X,pm);glAdd(v,'Shoe_'+X,shoe)}
+function glArm(p,s,shm,hand){p.position.set(s*.225*GS,.285*GS+.55,0);const v=glGrp(p,1,p.position),X=s>0?'L':'R';glAdd(v,'Arm_'+X,shm);glAdd(v,'Hand_'+X,hand)}
+function glKit(head,sp){const K=window.__GLB.kit,w=[];const h=GHAIR[sp.style];if(h)w.push([h,M(sp.hair||0x3a2418),1]);if(sp.bow)w.push(['Bow_Red']);const ht=GHAT[sp.hat];if(ht)w.push([ht]);if(sp.must)w.push(['Mustache_White',M(sp.must)]);
+ for(const [n,mat,hairOnly] of w){const a=K[n];if(!a)continue;const v=glGrp(head,1.3,head.position);const c=a.clone(true);c.position.sub(v.userData.piv);c.traverse(o=>{if(o.isMesh){o.castShadow=true;if(mat&&(!hairOnly||/^Hair/.test(o.material.name)))o.material=mat;if(o.material.name==='HoodMain')o.material=M(sp.hood||GDEF[n]||0x9aa0b0);if(o.material.name==='HatAccent'&&sp.crest)o.material=M(sp.crest)}});v.add(c)}}
+function glProps(sp,R,L,P){const W=window.__GLB.weapons;if(!W)return;
+ const put=(arm,name,tilt,off,recol)=>{const t=W[name];if(!t)return null;const h=new THREE.Group();h.position.set(0,-.55,0);if(off)h.position.add(off);h.scale.set(GS*1.7,GS,GS*1.7);const c=t.clone(true);c.traverse(o=>{if(o.isMesh){o.castShadow=true;if(recol&&o.material.name==='ShieldMain')o.material=M(recol)}});h.add(c);
+  if(tilt!==null)h.quaternion.copy(arm.quaternion).invert().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt,0,0)));arm.add(h);return h};
+ if(P==='sword'){R.rotation.x=-.3;put(R,'Weapon_Sword',.25);put(L,'Weapon_Shield',0,new THREE.Vector3(0,0,.2),sp.shield||0xd0342c)}
+ else if(P==='spear'){put(R,'Weapon_Spear',null,new THREE.Vector3(0,0,.3));put(L,'Weapon_Shield',0,new THREE.Vector3(0,0,.2),0xe8b020)}
+ else if(P==='hammer'){R.rotation.x=-.5;put(R,'Weapon_Hammer',.2)}
+ else if(P==='torch'){R.rotation.z=-2.6;put(R,'Weapon_Torch',0)}
+ else if(P==='wand'){R.rotation.x=-1.0;const h=put(R,'Weapon_Wand',.5);if(h){const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.8}));gl.userData.keep=true;gl.scale.set(.9/GS,.9/GS,1);gl.position.set(0,.32,0);h.add(gl)}}
+ else if(P==='staff'){put(L,'Weapon_Staff',null,new THREE.Vector3(0,0,.3))}
+ else if(P==='bow'){put(L,'Weapon_Bow',0,new THREE.Vector3(0,0,.3))}
+}
+function chibi(sp){const GL=window.__GLB;
  const root=new THREE.Group(),g=new THREE.Group();root.add(g);
  const sk=M(SKN[sp.skin]||sp.skin,{emissive:SKN[sp.skin]||sp.skin,emissiveIntensity:.22}),sh=M(sp.shirt),pa=M(sp.pants||sp.shirt),hr=M(sp.hair||0x3a2418),dk=M(0x1a1420);
  const legs=[],arms=[];
  for(const s of[-1,1]){const p=new THREE.Group();p.position.set(s*.19,.6,0);g.add(p);
-  _m(p,new THREE.CylinderGeometry(.12,.11,.5,6),sp.dress?sk:pa,0,-.25,0);_m(p,new THREE.BoxGeometry(.24,.12,.34),dk,0,-.55,.05);legs.push(p)}
+  if(GL)glLeg(p,s,sp.dress?sk:pa,dk);else{_m(p,new THREE.CylinderGeometry(.12,.11,.5,6),sp.dress?sk:pa,0,-.25,0);_m(p,new THREE.BoxGeometry(.24,.12,.34),dk,0,-.55,.05)}legs.push(p)}
  if(sp.dress)_m(g,new THREE.CylinderGeometry(.24,.5,.8,8),sh,0,.98,0);
- else _m(g,new THREE.CylinderGeometry(.3,.38,.8,7),sh,0,.98,0);
- if(!sp.dress&&!sp.budi)_m(g,new THREE.CylinderGeometry(.35,.36,.09,7),M(0x3a2418),0,.7,0);
+ else if(!GL)_m(g,new THREE.CylinderGeometry(.3,.38,.8,7),sh,0,.98,0);
+ if(GL)glTorso(g,sh);
+ if(!sp.dress&&!sp.budi&&!GL)_m(g,new THREE.CylinderGeometry(.35,.36,.09,7),M(0x3a2418),0,.7,0);
  if(sp.budi){_m(g,new THREE.BoxGeometry(.7,.14,.5),M(0xffffff),0,1.34,.02);_m(g,new THREE.BoxGeometry(.2,.1,.08),M(0x1c1a3a),0,1.36,.3)}
  if(sp.cape){const c=_m(g,new THREE.BoxGeometry(.84,1.1,.07),M(sp.cape>1?sp.cape:0xc42a34),0,1.0,-.36);c.rotation.x=.12}
  for(const s of[-1,1]){const p=new THREE.Group();p.position.set(s*.44,1.3,0);g.add(p);
-  _m(p,new THREE.CylinderGeometry(.1,.09,.5,5),sp.budi?sh:sh,0,-.25,0);_m(p,_sph(.11,6,5),sp.budi?M(0xffffff):sk,0,-.55,0);arms.push(p)}
- const head=new THREE.Group();head.position.y=2.12;head.scale.setScalar(1.3);g.add(head);
- {const ol=new THREE.MeshBasicMaterial({color:0x2a1a30,side:THREE.BackSide});const o=new THREE.Mesh(_sph(.6,10,8),ol);o.scale.setScalar(1.045);head.add(o);
+  if(GL)glArm(p,s,sh,sp.budi?M(0xffffff):sk);else{_m(p,new THREE.CylinderGeometry(.1,.09,.5,5),sh,0,-.25,0);_m(p,_sph(.11,6,5),sp.budi?M(0xffffff):sk,0,-.55,0)}arms.push(p)}
+ const head=new THREE.Group();head.position.y=GL?.77*GS:2.12;head.scale.setScalar(1.3);g.add(head);
+ if(!GL){const ol=new THREE.MeshBasicMaterial({color:0x2a1a30,side:THREE.BackSide});const o=new THREE.Mesh(_sph(.6,10,8),ol);o.scale.setScalar(1.045);head.add(o);
   const ob=new THREE.Mesh(new THREE.CylinderGeometry(.3,.38,.8,7),ol);ob.scale.set(1.07,1.05,1.07);ob.position.set(0,.98,0);g.add(ob)}
- _m(head,_sph(.6,12,10),sk,0,0,0);
- for(const s of[-1,1]){const e=_m(head,_sph(.1,8,6),dk,s*.22,-.04,.52,false);e.scale.set(.9,1.3,.5);
+ if(GL)glHead(head,sk,dk);else _m(head,_sph(.6,12,10),sk,0,0,0);
+ for(const s of GL?[]:[-1,1]){const e=_m(head,_sph(.1,8,6),dk,s*.22,-.04,.52,false);e.scale.set(.9,1.3,.5);
   _m(head,_sph(.034,5,4),M(0xffffff,{emissive:0xffffff,emissiveIntensity:.8}),s*.22+.025,.02,.59,false);
   _m(head,_sph(.018,4,3),M(0xffffff,{emissive:0xffffff,emissiveIntensity:.8}),s*.22-.025,-.08,.585,false);
   const ch=_m(head,_sph(.1,6,5),M(0xff7f95),s*.36,-.2,.44,false);ch.scale.set(1,.55,.35)}
- _m(head,_sph(.045,5,4),sk,0,-.1,.6,false);
- if(!sp.must){const mo=_m(head,new THREE.TorusGeometry(.06,.016,4,8,Math.PI),dk,0,-.2,.57,false);mo.rotation.z=Math.PI}
- if(sp.must){for(const s of[-1,1]){const m=_m(head,_sph(.14,6,5),M(sp.must),s*.13,-.2,.56,false);m.scale.set(1.1,.55,.6)}}
+ if(!GL)_m(head,_sph(.045,5,4),sk,0,-.1,.6,false);
+ if(!sp.must&&!GL){const mo=_m(head,new THREE.TorusGeometry(.06,.016,4,8,Math.PI),dk,0,-.2,.57,false);mo.rotation.z=Math.PI}
+ if(sp.must&&!GL){for(const s of[-1,1]){const m=_m(head,_sph(.14,6,5),M(sp.must),s*.13,-.2,.56,false);m.scale.set(1.1,.55,.6)}}
  if(sp.mono){const t=_m(head,new THREE.TorusGeometry(.12,.025,5,10),M(0xe8b020),.22,-.04,.58,false)}
  // hair
- const st=sp.style;
+ const st=GL?'none':sp.style;
  if(st!=='none'){const c=_m(head,_cap(.64,Math.PI*.56),hr,0,.02,-.04);c.rotation.x=-.28}
  if(st==='bob'||st==='side'){for(const s of[-1,1]){const b=_m(head,_sph(.3,6,5),hr,s*.48,-.2,-.1);b.scale.set(.6,1.1,.9)}_m(head,_sph(.5,7,6),hr,0,-.05,-.28)}
  if(st==='bun')_m(head,_sph(.25,6,5),hr,0,.7,-.15);
  if(st==='spiky')for(let i=0;i<5;i++){const a=i/5*Math.PI*2,k=_m(head,new THREE.ConeGeometry(.16,.4,4),hr,Math.sin(a)*.3,.62,Math.cos(a)*.25-.05);k.rotation.set(Math.cos(a)*.5,0,-Math.sin(a)*.5)}
  if(st==='pigtails'){for(const s of[-1,1]){_m(head,_sph(.2,6,5),hr,s*.66,-.25,-.05);const b=_m(head,new THREE.ConeGeometry(.14,.3,4),M(0xe8363d),s*.62,.1,-.05);b.rotation.z=-s*1.4}}
- if(sp.bow)_m(head,_sph(.1,5,4),M(0xe8363d),0,.6,.1);
+ if(sp.bow&&!GL)_m(head,_sph(.1,5,4),M(0xe8363d),0,.6,.1);
  // hats
- const H=sp.hat;
+ const H=(GL&&GHAT[sp.hat])?'__gl':sp.hat;if(GL)glKit(head,sp);
  if(H==='cap'){const c=_m(head,_cap(.68,Math.PI*.5),M(0x3a78d0),0,.05,0);c.rotation.x=-.1;_m(head,new THREE.BoxGeometry(.6,.05,.4),M(0x3a78d0),0,.1,.68)}
  if(H==='hard'){_m(head,_cap(.68,Math.PI*.5),M(0xffd21f),0,.05,0);_m(head,new THREE.BoxGeometry(.9,.05,.3),M(0xffd21f),0,.08,.52)}
  if(H==='straw'){_m(head,new THREE.CylinderGeometry(.95,.95,.05,10),M(0xe8c070),0,.38,0);_m(head,new THREE.CylinderGeometry(.5,.58,.34,8),M(0xe8c070),0,.55,0)}
@@ -142,7 +164,7 @@ function chibi(sp){
  if(H==='cat'){const ec=M(sp.hood||0x3a3440);for(const q of[-1,1]){const e=_m(head,new THREE.ConeGeometry(.2,.4,4),ec,q*.38,.6,0);e.rotation.z=-q*.35}}
  if(sp.wings){const wm=M(sp.wings,{emissive:0x2a1a40,emissiveIntensity:.35});for(const q of[-1,1]){const w=new THREE.Group();w.position.set(q*.2,1.3,-.42);g.add(w);const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(.55,.32);sh.lineTo(.5,.1);sh.lineTo(.8,.1);sh.lineTo(.55,-.1);sh.lineTo(.62,-.32);sh.lineTo(.2,-.2);sh.closePath();const m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:false}),wm);m.scale.x=q;m.rotation.y=q*.5;m.castShadow=true;w.add(m)}}
  if(sp.beard){const bc=M(sp.beard);const b=_m(head,new THREE.ConeGeometry(.52,.9,5),bc,0,-.5,.28);b.rotation.x=Math.PI;b.scale.set(1,1,.6);_m(head,_sph(.3,6,5),bc,0,-.2,.5,false).scale.set(1.6,.6,.5)}
- if(sp.glasses){for(const q of[-1,1]){_m(head,new THREE.TorusGeometry(.15,.022,5,10),M(0x2a2630),q*.22,-.04,.6,false)}_m(head,new THREE.BoxGeometry(.1,.02,.02),M(0x2a2630),0,-.03,.62,false)}
+ if(sp.glasses){const gx=GL?.285:.22,gy=GL?.02:-.04,gz=GL?.56:.6;for(const q of[-1,1]){_m(head,new THREE.TorusGeometry(GL?.12:.15,.022,5,10),M(0x2a2630),q*gx,gy,gz,false)}_m(head,new THREE.BoxGeometry(.1,.02,.02),M(0x2a2630),0,gy+.01,gz+.02,false)}
  if(sp.scarf){const sc=_m(g,new THREE.TorusGeometry(.34,.11,5,9),M(sp.scarf),0,1.42,0);sc.rotation.x=Math.PI/2;_m(g,new THREE.BoxGeometry(.14,.5,.06),M(sp.scarf),.22,1.18,.34)}
  if(sp.pack){const bp=_m(g,new THREE.BoxGeometry(.62,.8,.34),M(sp.pack),0,1.0,-.44);_m(g,new THREE.BoxGeometry(.5,.18,.3),M(0x7a4a22),0,1.5,-.44)}
  if(sp.pads){for(const q of[-1,1]){_m(g,_sph(.2,6,5),M(sp.pads,{metalness:.3,roughness:.55}),q*.42,1.38,0).scale.set(1.1,.7,1)}}
@@ -151,23 +173,23 @@ function chibi(sp){
  const R=arms[1],L=arms[0];let orb=null;
  const P=sp.prop;
  const stick=(par,len,col,y=0)=>_m(par,new THREE.CylinderGeometry(.035,.035,len,5),M(col),0,y,0);
- if(P==='hammer'){const s=stick(R,.8,0x8a5a2a,-.2);s.rotation.x=.3;_m(R,new THREE.BoxGeometry(.36,.18,.18),M(0x8a8f9a),0,-.6,.18);R.rotation.x=-.5}
+ if(P==='hammer'&&!GL){const s=stick(R,.8,0x8a5a2a,-.2);s.rotation.x=.3;_m(R,new THREE.BoxGeometry(.36,.18,.18),M(0x8a8f9a),0,-.6,.18);R.rotation.x=-.5}
  if(P==='basket'){const b=_m(R,new THREE.CylinderGeometry(.26,.2,.2,8),M(0xa86a30),0,-.68,.1);for(const c of[0xe8363d,0xffc227,0x4fe3b0])_m(R,_sph(.09,5,4),M(c),(Math.random()-.5)*.2,-.56,.1+(Math.random()-.5)*.1);R.rotation.x=-.3}
  if(P==='lantern'){_m(R,new THREE.BoxGeometry(.22,.3,.22),M(0xffe08a,{emissive:0xffc227,emissiveIntensity:.8}),0,-.8,.05);R.rotation.x=-.2}
- if(P==='torch'){const s=stick(R,.8,0x6a4020,-.5);_m(R,_sph(.16,6,5),M(0xff8a1f,{emissive:0xff6a1f,emissiveIntensity:1}),0,-.95,0);R.rotation.z=-2.6;s.position.y=-.7}
+ if(P==='torch'&&!GL){const s=stick(R,.8,0x6a4020,-.5);_m(R,_sph(.16,6,5),M(0xff8a1f,{emissive:0xff6a1f,emissiveIntensity:1}),0,-.95,0);R.rotation.z=-2.6;s.position.y=-.7}
  if(P==='broom'){const s=stick(L,1.8,0x8a5a2a,-.3);const b=_m(L,new THREE.ConeGeometry(.2,.45,6),M(0xe8c060),0,-1.3,0);L.rotation.x=-.2}
  if(P==='bucket'){_m(R,new THREE.CylinderGeometry(.2,.16,.25,7),M(0x9aa0b0),0,-.8,0)}
  if(P==='can'){_m(R,new THREE.BoxGeometry(.3,.26,.2),M(0x4a90d0),0,-.78,.05);const sp2=_m(R,new THREE.CylinderGeometry(.02,.02,.3,4),M(0x4a90d0),.2,-.7,.05);sp2.rotation.z=-.9}
- if(P==='spear'){const s=stick(R,2.2,0x8a5a2a,-.2);_m(R,new THREE.ConeGeometry(.08,.3,4),M(0xcfd4dc),0,.95,0);const sh2=_m(L,new THREE.CylinderGeometry(.3,.3,.06,8),M(0xe8b020),0,-.4,.2);sh2.rotation.x=Math.PI/2}
+ if(P==='spear'&&!GL){const s=stick(R,2.2,0x8a5a2a,-.2);_m(R,new THREE.ConeGeometry(.08,.3,4),M(0xcfd4dc),0,.95,0);const sh2=_m(L,new THREE.CylinderGeometry(.3,.3,.06,8),M(0xe8b020),0,-.4,.2);sh2.rotation.x=Math.PI/2}
  if(P==='plank'){const b=_m(R,new THREE.BoxGeometry(.16,.1,1.4),M(0xc8924a),0,.1,.1);R.rotation.z=-2.3;b.position.set(.2,-.45,.2);b.rotation.set(0,.3,0)}
  if(P==='bread'){const t=_m(g,new THREE.BoxGeometry(.8,.05,.5),M(0xd8d8e0),0,1.08,.5);for(let i=-1;i<=1;i++)_m(g,_sph(.12,5,4),M(0xd8883a),i*.22,1.17,.5);arms[0].rotation.x=-1.2;arms[1].rotation.x=-1.2}
- if(P==='sword'){const bl=_m(R,new THREE.BoxGeometry(.09,1.0,.03),M(0xdde3ee,{metalness:.4}),0,-.95,.12);bl.rotation.x=.25;_m(R,new THREE.BoxGeometry(.3,.07,.07),M(0xe8b020),0,-.52,.08);const shd=_m(L,new THREE.CylinderGeometry(.34,.3,.07,8),M(sp.shield||0xd0342c),0,-.45,.22);shd.rotation.x=Math.PI/2;_m(L,_sph(.09,5,4),M(0xffc227),0,-.45,.27,false);R.rotation.x=-.3}
- if(P==='bow'){const bw=_m(L,new THREE.TorusGeometry(.5,.035,5,12,Math.PI),M(0x8a5a2a),0,-.5,.2);bw.rotation.set(0,Math.PI/2,Math.PI/2);_m(L,new THREE.BoxGeometry(.015,1.0,.015),M(0xeeeeee),0,-.5,.2);L.rotation.x=-.5;const q=_m(g,new THREE.CylinderGeometry(.1,.1,.6,6),M(0x6a3a1a),.12,1.3,-.5);q.rotation.z=.3}
+ if(P==='sword'&&!GL){const bl=_m(R,new THREE.BoxGeometry(.09,1.0,.03),M(0xdde3ee,{metalness:.4}),0,-.95,.12);bl.rotation.x=.25;_m(R,new THREE.BoxGeometry(.3,.07,.07),M(0xe8b020),0,-.52,.08);const shd=_m(L,new THREE.CylinderGeometry(.34,.3,.07,8),M(sp.shield||0xd0342c),0,-.45,.22);shd.rotation.x=Math.PI/2;_m(L,_sph(.09,5,4),M(0xffc227),0,-.45,.27,false);R.rotation.x=-.3}
+ if(P==='bow'){if(!GL){const bw=_m(L,new THREE.TorusGeometry(.5,.035,5,12,Math.PI),M(0x8a5a2a),0,-.5,.2);bw.rotation.set(0,Math.PI/2,Math.PI/2);_m(L,new THREE.BoxGeometry(.015,1.0,.015),M(0xeeeeee),0,-.5,.2)}L.rotation.x=-.5;const q=_m(g,new THREE.CylinderGeometry(.1,.1,.6,6),M(0x6a3a1a),.12,1.3,-.5);q.rotation.z=.3}
  if(P==='gsword'){const bl=_m(R,new THREE.BoxGeometry(.3,2.3,.07),M(0xdde3ee,{metalness:.4,emissive:0x8899aa,emissiveIntensity:.25}),0,.75,.12);_m(R,new THREE.ConeGeometry(.15,.3,4),M(0xdde3ee,{metalness:.4}),0,2.05,.12);_m(R,new THREE.BoxGeometry(.7,.14,.14),M(0xe8b020),0,-.5,.12);_m(R,new THREE.CylinderGeometry(.07,.07,.5,5),M(0x6a3a1a),0,-.75,.12);R.rotation.set(-.15,0,-.12)}
- if(P==='wand'){const w=stick(R,1.3,0x8a5a2a,-.55);w.rotation.x=.4;const st=_m(R,new THREE.OctahedronGeometry(.24),M(0xfff07a,{emissive:0xffe040,emissiveIntensity:1.4}),0,-1.15,.5,false);const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.8}));gl.userData.keep=true;gl.scale.set(.9,.9,1);st.add(gl);R.rotation.x=-1.0}
+ if(P==='wand'&&!GL){const w=stick(R,1.3,0x8a5a2a,-.55);w.rotation.x=.4;const st=_m(R,new THREE.OctahedronGeometry(.24),M(0xfff07a,{emissive:0xffe040,emissiveIntensity:1.4}),0,-1.15,.5,false);const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.8}));gl.userData.keep=true;gl.scale.set(.9,.9,1);st.add(gl);R.rotation.x=-1.0}
  if(P==='cane'){const s=stick(R,1.1,0x6a4020,-.6);R.rotation.x=-.2}
- if(P==='staff'){const s=stick(L,2.3,0xe8b020,0);s.position.y=-.2;orb=new THREE.Group();orb.position.set(0,.95,0);L.add(orb);_m(L,_sph(.15,7,6),M(0xfff07a,{emissive:0xffe040,emissiveIntensity:1.2}),0,.95,0,false);L.rotation.x=-.3}
- const rig={legs,arms,head,g,base:{aL:L.rotation.clone(),aR:R.rotation.clone()},prop:P};
+ if(P==='staff'){if(!GL){const s=stick(L,2.3,0xe8b020,0);s.position.y=-.2}orb=new THREE.Group();orb.position.set(0,.95,GL?.3:0);L.add(orb);if(!GL)_m(L,_sph(.15,7,6),M(0xfff07a,{emissive:0xffe040,emissiveIntensity:1.2}),0,.95,0,false);L.rotation.x=-.3}
+ if(GL)glProps(sp,R,L,P);const rig={legs,arms,head,g,base:{aL:L.rotation.clone(),aR:R.rotation.clone()},prop:P};
  root.userData.rig=rig;root.userData.orb=orb;
  return root}
 const JOBSPEC={ARCHER:{hat:'archer',hood:0x3a8a4a,prop:'bow',pack:0xa86a30},SWORDMAN:{hat:'knight',armor:0xb8bec8,pads:0xb8bec8,crest:0xe8363d,prop:'sword',shield:0x3a78d0},MAGE:{hat:'wizard',hood:0x5a3aa8,prop:'staff'}};
