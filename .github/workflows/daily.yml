@@ -8,24 +8,77 @@ on:
         description: 'Tes saja (baca Instagram, tidak mengubah desa)'
         type: boolean
         default: true
+      check:
+        description: 'Cek token dan izin posting (tidak memposting)'
+        type: boolean
+        default: false
+      render:
+        description: 'Buat video saja (tidak diposting, hasil jadi file unduhan)'
+        type: boolean
+        default: false
+      post:
+        description: 'Buat video LALU posting ke Instagram'
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency: pohon-warga-daily
 jobs:
   day:
     runs-on: ubuntu-latest
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - name: Cek token dan izin posting
+        if: ${{ inputs.check }}
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: node scripts/post.js --check
       - name: Jalankan satu hari
+        if: ${{ !inputs.check }}
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
         run: node scripts/daily.js ${{ inputs.dry && '--dry' || '' }}
       - name: Simpan hasil
+        if: ${{ !inputs.check }}
         run: |
           git config user.name "pohon-warga-bot"
           git config user.email "bot@users.noreply.github.com"
           git add site/data manual
           git diff --cached --quiet || (git commit -m "Hari baru" && git push)
+      # --- Video harian: hanya saat jadwal otomatis, atau saat dipilih manual ---
+      - name: Siapkan perekam video
+        id: need
+        if: ${{ !inputs.check && !inputs.dry && ((github.event_name == 'schedule' && vars.AUTO_POST == '1') || inputs.render || inputs.post) }}
+        run: |
+          echo "go=1" >> "$GITHUB_OUTPUT"
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install -q playwright
+          python3 -m playwright install --with-deps chromium
+      - name: Buat video
+        if: ${{ steps.need.outputs.go == '1' }}
+        run: python3 scripts/video.py --out out/reel.mp4
+      - name: Simpan video sebagai file unduhan
+        if: ${{ steps.need.outputs.go == '1' }}
+        uses: actions/upload-artifact@v4
+        with: { name: reel, path: out/reel.mp4, retention-days: 7 }
+      - name: Taruh video di alamat publik
+        id: pub
+        if: ${{ steps.need.outputs.go == '1' && ((github.event_name == 'schedule' && vars.AUTO_POST == '1') || inputs.post) }}
+        run: |
+          d=$(mktemp -d); cp out/reel.mp4 "$d/reel.mp4"; cd "$d"
+          git init -q -b reels-latest
+          git config user.name "pohon-warga-bot"; git config user.email "bot@users.noreply.github.com"
+          git add reel.mp4; git commit -q -m "Reel $(date -u +%F)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" reels-latest
+          echo "url=https://raw.githubusercontent.com/${{ github.repository }}/reels-latest/reel.mp4" >> "$GITHUB_OUTPUT"
+      - name: Posting Reel ke Instagram
+        if: ${{ steps.pub.outputs.url != '' }}
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: node scripts/post.js "${{ steps.pub.outputs.url }}"
