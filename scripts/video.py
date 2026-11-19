@@ -15,11 +15,11 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
-W, H, FPS, DUR = 540, 960, 24, 20
+W, H, FPS, DUR = 540, 960, 24, 25
 SPEED = 3.0  # animasi viewer berjalan 3x (efek time-lapse)
 
 # (mulai, selesai, nama)
-SCENES = [(0, 3, "hook"), (3, 8, "usul"), (8, 15, "bangun"), (15, 18, "statistik"), (18, 20, "ajakan")]
+SCENES = [(0, 3, "hook"), (3, 9, "usul"), (9, 17, "bangun"), (17, 21, "statistik"), (21, 25, "ajakan")]
 
 def load_day():
     if os.environ.get("PREVIEW_SAMPLE"):   # hanya untuk preview: komentar asli dari post Day 1
