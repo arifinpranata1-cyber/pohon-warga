@@ -22,6 +22,11 @@ SPEED = 3.0  # animasi viewer berjalan 3x (efek time-lapse)
 SCENES = [(0, 3, "hook"), (3, 8, "usul"), (8, 15, "bangun"), (15, 18, "statistik"), (18, 20, "ajakan")]
 
 def load_day():
+    if os.environ.get("PREVIEW_SAMPLE"):   # hanya untuk preview: komentar asli dari post Day 1
+        return {"day": 2, "stats": {"population": 3, "buildings": 2, "kas": 29},
+                "events": [{"type": "build", "name": "Rumah baru untuk @odds.creativelab"}],
+                "usul_teratas": {"user": "odds.creativelab", "text": "Halo. Bangun rumah buat saya",
+                                 "lain": [("stupidodds", "Bangun rumah dongss")]}}
     days = json.loads((SITE / "data" / "days.json").read_text(encoding="utf8"))
     return days[-1] if days else {"day": 1, "stats": {}, "events": [], "usul_teratas": None}
 
@@ -38,6 +43,12 @@ def usul_text(d):
     if isinstance(u, str) and u:
         return "", u
     return "", "Belum ada usul. Komen sekarang, Pak RT menunggu!"
+
+def lain_html(d):
+    u = d.get("usul_teratas")
+    rows = u.get("lain", []) if isinstance(u, dict) else []
+    return "".join(f'<div style="margin-top:12px;padding-top:10px;border-top:2px solid #eee;font-weight:500;font-size:20px;color:#241a5c">'
+                   f'<b>@{esc(a)}</b> {esc(b)}</div>' for a, b in rows)
 
 def selesai_text(d):
     for e in d.get("events", []):
@@ -64,21 +75,22 @@ def overlay_html(scene, d, t):
     st = d.get("stats", {})
     day = d.get("day", 1)
     user, text = usul_text(d)
-    base = ("position:absolute;left:0;right:0;font-family:Poppins;text-align:center;color:#fff;"
-            "text-shadow:0 3px 0 rgba(0,0,0,.35);")
+    base = ("position:absolute;left:6%;right:6%;font-family:Poppins;text-align:center;color:#fff;"
+            "background:rgba(36,26,92,.62);border-radius:22px;padding:12px 16px;"
+            "text-shadow:0 2px 0 rgba(0,0,0,.35);")
     if scene == "hook":
-        return (f'<div style="{base}top:15%;font-size:84px;font-weight:700;line-height:1">DAY {day}</div>'
-                f'<div style="{base}top:27%;font-size:30px;font-weight:700">Desa ini dibangun oleh komentarmu</div>')
+        return (f'<div style="{base}top:7%;font-size:78px;font-weight:700;line-height:1">DAY {day}</div>'
+                f'<div style="{base}top:21%;font-size:28px;font-weight:700">Desa ini dibangun oleh komentarmu</div>')
     if scene == "usul":
-        return (f'<div style="position:absolute;left:6%;right:6%;top:15%;background:#fff;border-radius:22px;padding:22px 26px;'
+        return (f'<div style="position:absolute;left:6%;right:6%;top:8%;background:#fff;border-radius:22px;padding:22px 26px;'
                 f'font-family:Poppins;box-shadow:0 8px 0 rgba(0,0,0,.18)">'
                 f'<div style="display:inline-block;background:#ff3d6e;color:#fff;font-weight:700;font-size:20px;padding:4px 14px;border-radius:12px">USUL TERATAS</div>'
                 f'<div style="font-weight:700;font-size:34px;color:#241a5c;margin-top:12px;line-height:1.15">{esc(text)}</div>'
-                f'<div style="font-weight:500;font-size:22px;color:#6b6b88;margin-top:6px">{esc(user)}</div></div>')
+                f'<div style="font-weight:500;font-size:22px;color:#6b6b88;margin-top:6px">{esc(user)}</div>{lain_html(d)}</div>')
     if scene == "bangun":
         clock = f"x{int(SPEED * 8)}"
-        return (f'<div style="position:absolute;left:6%;top:14%;background:#ffd23d;color:#241a5c;font-family:Poppins;font-weight:700;font-size:34px;padding:8px 20px;border-radius:16px;box-shadow:0 5px 0 rgba(0,0,0,.2)">{clock}</div>'
-                f'<div style="{base}top:24%;font-size:34px;font-weight:700;padding:0 8%">{esc(selesai_text(d))}</div>')
+        return (f'<div style="position:absolute;left:6%;top:8%;background:#ffd23d;color:#241a5c;font-family:Poppins;font-weight:700;font-size:34px;padding:8px 20px;border-radius:16px;box-shadow:0 5px 0 rgba(0,0,0,.2)">{clock}</div>'
+                f'<div style="{base}top:22%;font-size:32px;font-weight:700">{esc(selesai_text(d))}</div>')
     if scene == "statistik":
         def chip(lbl, val):
             return (f'<div style="background:#fff;border-radius:18px;padding:12px 20px;font-family:Poppins;font-weight:700;color:#241a5c;'
@@ -86,8 +98,8 @@ def overlay_html(scene, d, t):
                     f'<div style="font-size:16px;color:#6b6b88;font-weight:500">{lbl}</div></div>')
         return (f'<div style="position:absolute;left:5%;right:5%;top:15%;display:flex;gap:14px;justify-content:center">'
                 f'{chip("WARGA", st.get("population", 0))}{chip("BANGUNAN", st.get("buildings", 0))}{chip("KAS", st.get("kas", 0))}</div>')
-    return (f'<div style="{base}top:16%;font-size:44px;font-weight:700;line-height:1.1">FOLLOW = JADI WARGA</div>'
-            f'<div style="{base}top:26%;font-size:44px;font-weight:700;line-height:1.1;color:#ffd23d">KOMEN = MINTA BANGUNAN</div>')
+    return (f'<div style="{base}top:7%;font-size:40px;font-weight:700;line-height:1.1">FOLLOW = JADI WARGA</div>'
+            f'<div style="{base}top:19%;font-size:40px;font-weight:700;line-height:1.1;color:#ffd23d">KOMEN = MINTA BANGUNAN</div>')
 
 def scene_at(t):
     for a, b, n in SCENES:
@@ -120,8 +132,9 @@ def main():
     with sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
         pg = b.new_page(viewport={"width": W, "height": H})
-        pg.goto(f"http://127.0.0.1:{port}/index.html?empty&m={args.mood}", wait_until="load")
+        pg.goto(f"http://127.0.0.1:{port}/index.html?m={args.mood}", wait_until="load")
         pg.wait_for_timeout(5000)
+        pg.add_style_tag(content=".top,.pill,.card,#ui{display:none!important}")
         pg.add_style_tag(content="@font-face{font-family:Poppins;src:url('fonts/Poppins-Bold.ttf');font-weight:700}"
                                  "@font-face{font-family:Poppins;src:url('fonts/Poppins-Medium.ttf');font-weight:500}")
         pg.evaluate("""()=>{const o=document.createElement('div');o.id='ov';o.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99';document.body.appendChild(o)}""")
