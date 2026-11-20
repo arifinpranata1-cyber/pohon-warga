@@ -67,8 +67,8 @@ Suara: Budi bicara sebagai "aku" ke "kamu" lewat teks gelembung + kotak kinetik.
 | 0.0–1.0 | Kamera menukik dari atas pohon besar langsung ke wajah Budi (signature shot) | **"AKU BIKIN DESA."** (kuning, besar) |
 | 1.0–3.0 | Budi naik kuda goyang di depan pohon → jatuh, GUBRAK, topi terbang | "GUBRAK!" lalu **"...TAPI WARGANYA CUMA AKU."** |
 | 3.0–5.0 | Budi bangun, kamera mundur cepat: semua cincin kavling kosong | Gelembung Budi: "Lho? Kok sepi?" + chip **WARGA: 1** |
-| 5.0–9.0 | Terbang rendah di atas kavling kosong berpagar, satu kavling ber-papan "@kamu?" berkedip | **"ADA 78 RUMAH KOSONG."** → **"SATU BUAT KAMU."** |
-| 9.0–12.5 | Rumah "pop" muncul di kavling itu dengan label "@namamu" | **"FOLLOW = RUMAHMU MUNCUL DI SINI"** |
+| 5.0–9.0 | Terbang rendah di atas cincin dalam: 16 rumah sudah jadi, atap abu, label kecil "kosong" | **"16 RUMAH SUDAH JADI."** → **"SEMUANYA KOSONG."** |
+| 9.0–12.5 | Satu rumah "hidup": atap abu → ungu, lampu menyala, label "@namamu" muncul, karakter kecil keluar pintu | **"FOLLOW = RUMAH INI JADI MILIKMU"** + kecil: "cari namamu di link bio, lalu jalan-jalan" |
 | 12.5–17.0 | Gelembung komentar palsu-jelas (avatar abu, "@contoh") "bangun kolam lele dong" → kolam muncul, Budi kaget (lompat, topi naik) | **"KOMEN = AKU BANGUNIN"** + kecil: "komen paling banyak ❤️ dibangun duluan" |
 | 17.0–21.5 | Time-lapse balai: jam 08:00 → 17:00, kamera samping 3/4 (Budi di kiri frame, **tidak menutupi** bangunan), topi Budi terbang saat balai selesai | Gelembung: "Sambil nunggu, aku bangun balai dulu." |
 | 21.5–26.0 | Wide desa senja, lampu menyala | **"BESOK 19:30 AKU BANGUN USULAN TERATAS"** → "1 RUMAH / 2 TAMAN / 3 PASAR / atau usulmu sendiri" |
@@ -132,3 +132,15 @@ Catatan fakta: angka 78 = jumlah slot di `site/v5/pw_slots.json` (cek ulang sebe
 - [ ] 4. Render penuh + audio §4 langkah 7–9 → kirim MP4
 - [ ] 5. Hewan §2 poin 6 (kalau waktu cukup, setelah Day 1 terkirim)
 - [ ] 6. Setelah tayang: aktifkan workflow, pantau run pertama
+
+---
+
+## 8. Keputusan 20 Nov sore (Arifin) — sudah masuk viewer lokal, BELUM di-push
+
+- Postingan lama dibatalkan. Day 1 baru tayang kalau semuanya siap (tidak harus Sabtu).
+- **Rumah dibangun dulu**: 16 rumah netral (atap abu, label "kosong") di cincin dalam; saat ada follower, rumah itu berganti atap sesuai sektor + label @nama. Minimal 8 rumah kosong selalu tersedia (konstanta `PRE=16`, `VAC=8` di `site/index.html`). Kavling luar tetap tanah kosong berpagar.
+- **Cari & main**: cari @username → kartu info → tombol "Main sebagai @username" → karakter berdiri di depan rumahnya, bisa dijalankan (WASD/panah/joystick), kamera ikut dan bisa diputar, tabrakan dengan rumah/pohon/batu/penduduk, tidak bisa masuk sungai (jembatan bisa dilewati). Karakter dipilih deterministik dari username (8 varian).
+- **Day 1 = data bersih**: `day 0`, warga 1, hanya balai. HUD "WARGA: 1" + "HARI KE-1". Cadangan data lama di `data_backup/`.
+- **Penduduk berjalan mengikuti data** (maks 12). Day 1: hanya Budi.
+- **Parameter uji**: `?demo=N` mengisi N rumah palsu (hanya untuk tes/preview), `?nointro=1` melewati kamera pembuka.
+- **Semua 5 ide Opus disetujui** (§6). Status: (1) label ★ Pendiri untuk 20 warga pertama — sudah di viewer; (2) "ambil kavling N" — tugas engine Day 2 (`scripts/daily.js` parse kata kunci, klaim slot tertentu); (3) seri "Budi gagal lagi" — konten, mulai Day 2; (4) usulan aneh dibangun apa adanya dengan label "Usulan @nama" — tugas engine+viewer Day 2 (tipe bangunan `usulan`, papan generik + label); (5) penutup video berupa peta dengan rumah follower baru — mulai Day 2.
