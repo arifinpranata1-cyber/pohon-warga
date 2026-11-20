@@ -132,7 +132,7 @@ def main():
     with sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
         pg = b.new_page(viewport={"width": W, "height": H})
-        pg.goto(f"http://127.0.0.1:{port}/index.html?m={args.mood}", wait_until="load")
+        pg.goto(f"http://127.0.0.1:{port}/lama.html?m={args.mood}", wait_until="load")
         pg.wait_for_timeout(5000)
         pg.add_style_tag(content=".top,.pill,.card,#ui{display:none!important}")
         pg.add_style_tag(content="@font-face{font-family:Poppins;src:url('fonts/Poppins-Bold.ttf');font-weight:700}"
