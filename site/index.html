@@ -27,6 +27,16 @@ html,body{margin:0;height:100%;background:#7fc4ea;overflow:hidden;font-family:Po
 .lbl.u{background:#7a4ad8;color:#fff}.lbl.k{background:#FFC227}.lbl.h{background:#2f9e55;color:#fff}.lbl.sel{outline:2px solid #fff;font-size:12px}
 #shot{position:absolute;right:18px;bottom:18px;width:60px;height:60px;border-radius:50%;border:4px solid #fff;background:#ffffff55;display:none;pointer-events:auto;cursor:pointer}
 body.photo .hud:not(#bar){display:none}body.photo .lbl{display:none}body.photo #bar .nf{display:none}body.photo #shot{display:block}
+#info button{pointer-events:auto;margin-top:8px}
+.lbl.f{outline:2px solid #ffd75e}
+.lbl.e{background:#ffffffb8;color:#5a5a7a;font-size:9.5px;font-weight:600}
+.lbl.me{background:#1A1466;color:#fff;font-size:12px}
+#joy{position:absolute;left:24px;bottom:30px;width:124px;height:124px;border-radius:50%;background:#ffffff40;border:3px solid #ffffffcc;display:none;touch-action:none;pointer-events:auto}
+#knob{position:absolute;left:36px;top:36px;width:52px;height:52px;border-radius:50%;background:#ffffffdd;box-shadow:0 3px 8px #0004}
+#exitp{position:absolute;left:50%;transform:translateX(-50%);top:14px;display:none;pointer-events:auto}
+#hint{left:0;right:0;bottom:18px;text-align:center;font-size:12px;font-weight:600;text-shadow:0 1px 6px #0007;display:none}
+body.play #joy,body.play #exitp,body.play #hint{display:block}
+body.play #side,body.play #bar,body.play #info{display:none!important}
 #load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#7fc4ea;color:#1A1466;font-weight:700;font-size:16px;transition:opacity .5s}
 </style></head><body>
 <canvas id="c"></canvas>
@@ -35,7 +45,7 @@ body.photo .hud:not(#bar){display:none}body.photo .lbl{display:none}body.photo #
 <div class="hud" id="side"><input id="q" placeholder="Cari rumah warga (tanpa @)" autocomplete="off"><div id="res"></div></div>
 <div class="hud" id="info" style="display:none"></div>
 <div class="hud" id="bar"><button class="btn nf" data-m="pagi">🌅 Pagi</button><button class="btn nf" data-m="siang">☀️ Siang</button><button class="btn nf" data-m="sore">🌇 Senja</button><button class="btn nf" data-m="malam">🌙 Malam</button><button class="btn" id="photo">📷 Mode foto</button></div>
-<div id="shot" title="Ambil foto"></div>
+<div id="shot" title="Ambil foto"></div><div id="joy"><div id="knob"></div></div><button class="btn" id="exitp">✕ Keluar</button><div class="hud" id="hint">WASD / panah atau joystick untuk jalan · geser layar untuk memutar kamera</div>
 <div id="load">Memuat desa…</div>
 <script type="importmap">{"imports":{"three":"./lib/three/build/three.module.js","three/addons/":"./lib/three/examples/jsm/"}}</script>
 <script type="module">
@@ -121,6 +131,7 @@ const [stat,rumah,wargaG,slots,DATA]=await Promise.all([
 ]);
 let LBL={};try{LBL=await (await fetch('v5/labels.json')).json()}catch(e){}
 let DAYS=[];try{DAYS=await (await fetch('data/days.json')).json()}catch(e){}
+if(Q.get('demo')){const n=Math.min(70,+Q.get('demo')||0);DATA.buildings=DATA.buildings||[];for(let i=0;i<n;i++){DATA.buildings.push({id:'d'+i,type:'rumah',status:'done',by:null,day:1});LBL['d'+i]='warga_demo'+(i+1)}DATA.population=n+1}
 
 function prep(o,recv){o.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=!!recv;const mt=m.material;if(mt&&mt.name==='v5_lamp_glow')glowMats.push(mt);if(mt&&/^v5_(shallow|deep|foam)$/.test(mt.name)){m.castShadow=false}}})}
 const desa=stat.scene;{const kill=[];desa.traverse(o=>{if(/^BigTree/.test(o.name)||/^bt_/.test(o.name))kill.push(o)});kill.forEach(o=>o.parent&&o.parent.remove(o))}prep(desa,true);S.add(desa);{let bd=null;desa.traverse(o=>{if(!bd&&/^Budi/.test(o.name))bd=o});window.__budi=bd}
@@ -130,13 +141,15 @@ glowMats=[...new Set(glowMats)];
 // ---------- rumah warga ----------
 const SECT={ungu:{roof:0x6a3dc0,cls:'u'},kuning:{roof:0xe6a31a,cls:'k'},hijau:{roof:0x33a352,cls:'h'}};
 const roofMat={};
-function houseFor(sector){
+function houseFor(sector,neutral){
  const h=rumah.scene.clone(true);
  h.traverse(m=>{if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;
-  if(m.material&&m.material.name==='v5_roof_odds'){roofMat[sector]=roofMat[sector]||Object.assign(m.material.clone(),{color:new THREE.Color(SECT[sector].roof)});m.material=roofMat[sector]}});
+  if(m.material&&m.material.name==='v5_roof_odds'){const key=neutral?'n':sector;roofMat[key]=roofMat[key]||Object.assign(m.material.clone(),{color:new THREE.Color(neutral?0xbdb29c:SECT[sector].roof)});m.material=roofMat[key]}});
  return h;
 }
 const ODDS=slots.reduce((b,s)=>Math.hypot(s.x-20.86,s.z+14.22)<Math.hypot(b.x-20.86,b.z+14.22)?s:b,slots[0]);
+{const gm=[];desa.traverse(o=>{if(o.isMesh&&o.material&&/^v5_grass2?_t$/.test(o.material.name)&&!gm.includes(o.material))gm.push(o.material)});
+ if(gm.length>1){const avg=new THREE.Color(0,0,0);gm.forEach(m=>avg.add(m.color));avg.multiplyScalar(1/gm.length);gm.forEach(m=>m.color.lerp(avg,.45))}}
 const builds=(DATA.buildings||[]).filter(b=>b.type!=='balai'&&(b.status==='done'||b.status==='building'));
 const order=slots.filter(s=>s!==ODDS);
 const placed=[];let oi=0;
@@ -149,6 +162,8 @@ for(const b of builds){
  placed.push({b,s,h,user:user||('rumah '+b.id),cls:SECT[s.sector].cls});
 }
 
+const PRE=16,VAC=8;
+const vacant=order.slice(oi,oi+Math.max(PRE-builds.length,VAC)).map(s=>{const h=houseFor(s.sector,true);h.position.set(s.x,0,s.z);h.rotation.y=s.ry;S.add(h);return{s,h}});
 const tmp=new THREE.Vector3();
 // ---------- dunia kecil: penduduk, Budi, hewan (jalan + tabrakan sederhana) ----------
 const OB=[];
@@ -192,7 +207,9 @@ const PPL=[];
 if(budi){const [x,z]=polar(16.5,45);const a=agent(budi,.45,x,z,.8,'walk',{R:16.5,dir:1,kind:'budi'});PPL.push(a)}
 const WSC=1.15;
 function mkWarga(i){const src=wargaG.scene.getObjectByName('WP'+(i%8));const g=new THREE.Group(),m=src.clone(true);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(WSC);m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=false}});g.add(m);const F=n=>{let r=null;m.traverse(o=>{if(!r&&o.name.startsWith(n)&&!o.isMesh)r=o});return r};g.userData={lg:[F('LegL'),F('LegR')],ar:[F('ArmL'),F('ArmR')]};return g}
-[[0,16.5,200,-1,null],[1,31.5,60,1,WALK_ARC],[5,31.5,150,-1,WALK_ARC]].forEach(([i,R,deg,dir,arc],k)=>{const g=mkWarga(i);const [x,z]=polar(R,deg);PPL.push(agent(g,.5,x,z,.6+k*.04,'walk',{R,dir,arc,kind:'warga'}))});
+const NW=Math.min(12,Math.max(0,(DATA.population||1)-1));
+const WCFG=[[0,16.5,200,-1,null],[1,31.5,60,1,WALK_ARC],[5,31.5,150,-1,WALK_ARC],[2,16.5,330,1,null],[3,31.5,100,1,WALK_ARC],[6,31.5,20,-1,WALK_ARC],[4,16.5,90,-1,null],[7,31.5,120,1,WALK_ARC],[0,31.5,40,-1,WALK_ARC],[2,31.5,170,1,WALK_ARC],[3,16.5,260,1,null],[5,31.5,80,-1,WALK_ARC]];
+WCFG.slice(0,NW).forEach(([i,R,deg,dir,arc],k)=>{const g=mkWarga(i);const [x,z]=polar(R,deg);PPL.push(agent(g,.5,x,z,.6+k*.03,'walk',{R,dir,arc,kind:'warga'}))});
 // hewan
 const BIRDS=[];window.__agents=AG;window.__hgt=a=>{a.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(a.g);return [b.max.y-b.min.y,b.max.x-b.min.x]};
 
@@ -212,17 +229,23 @@ function simUpdate(dt){
   }else if(a.ai==='wander'){
    if(a.pause>0){a.pause-=dt;moving=false}
    else{if(!a.tg||Math.hypot(a.tg[0]-a.x,a.tg[1]-a.z)<.5){a.tg=freeSpot(a,a.zone);a.pause=rr(1.5,5)}wx=a.tg[0]-a.x;wz=a.tg[1]-a.z}
+  }else if(a.ai==='player'){
+   const kx=(KEYS.d||KEYS.ArrowRight?1:0)-(KEYS.a||KEYS.ArrowLeft?1:0),ky=(KEYS.w||KEYS.ArrowUp?1:0)-(KEYS.s||KEYS.ArrowDown?1:0);
+   let ix=JOY.x+kx,iy=JOY.y+ky;const mg=Math.hypot(ix,iy);if(mg>1){ix/=mg;iy/=mg}
+   const fx=controls.target.x-cam.position.x,fz=controls.target.z-cam.position.z,fl=Math.hypot(fx,fz)||1,Fx=fx/fl,Fz=fz/fl;
+   wx=-Fz*ix+Fx*iy;wz=Fx*ix+Fz*iy;moving=mg>.08;a.sp=3.3*Math.min(1,mg);
   }else if(a.ai==='follow'){
    const L=a.lead,d=Math.hypot(L.x-a.x,L.z-a.z);if(d<2.3){moving=false}else{wx=L.x-a.x;wz=L.z-a.z;a.sp=Math.min(1.8,Math.max(.6,d*.5))}
   }
   let ax=wx,az=wz;const l0=Math.hypot(ax,az)||1;ax/=l0;az/=l0;
-  if(moving){
+  if(moving&&a.ai!=='player'){
    for(const o of OB){const dx=a.x-o[0],dz=a.z-o[1],d=Math.hypot(dx,dz),m=o[2]+a.rad+1.3;if(d<m&&d>1e-4){const k=(m-d)/1.3;ax+=dx/d*k*1.6-dz/d*k*.8;az+=dz/d*k*1.6+dx/d*k*.8}}
    for(const b of AG){if(b===a)continue;const dx=a.x-b.x,dz=a.z-b.z,d=Math.hypot(dx,dz),m=a.rad+b.rad+1.0;if(d<m&&d>1e-4){const k=(m-d)/1.0;ax+=dx/d*k*1.5-dz/d*k*.9;az+=dz/d*k*1.5+dx/d*k*.9}}
   }
   const l=Math.hypot(ax,az)||1;const f=1-Math.exp(-dt*4);
   const tvx=moving?ax/l*a.sp:0,tvz=moving?az/l*a.sp:0;a.vx+=(tvx-a.vx)*f;a.vz+=(tvz-a.vz)*f;
-  a.x+=a.vx*dt;a.z+=a.vz*dt;
+  const ppx=a.x,ppz=a.z;a.x+=a.vx*dt;a.z+=a.vz*dt;
+  if(a.ai==='player'&&blocked(a.x,a.z)){if(!blocked(a.x,ppz))a.z=ppz;else if(!blocked(ppx,a.z))a.x=ppx;else{a.x=ppx;a.z=ppz}}
   for(const o of OB){const dx=a.x-o[0],dz=a.z-o[1],d=Math.hypot(dx,dz),m=o[2]+a.rad;if(d<m&&d>1e-4){a.x=o[0]+dx/d*m;a.z=o[1]+dz/d*m}}
   for(const b of AG){if(b===a)continue;const dx=a.x-b.x,dz=a.z-b.z,d=Math.hypot(dx,dz),m=a.rad+b.rad;if(d<m&&d>1e-4){const p=(m-d)/2;a.x+=dx/d*p;a.z+=dz/d*p;b.x-=dx/d*p;b.z-=dz/d*p}}
   a.st+=dt;if(a.st>3){if(moving&&Math.hypot(a.x-a.sx,a.z-a.sz)<.35){if(a.ai==='walk')a.dir*=-1;else a.tg=null}a.sx=a.x;a.sz=a.z;a.st=0}
@@ -253,12 +276,14 @@ cv.addEventListener('pointerup',e=>{if(!budi||!e.isPrimary)return;const r=cv.get
 
 // ---------- label HTML ----------
 const lbBox=document.getElementById('lbls');
-placed.forEach(p=>{const d=document.createElement('div');d.className='lbl '+p.cls;d.textContent='@'+p.user;lbBox.appendChild(d);p.el=d;p.pos=new THREE.Vector3(p.s.x,6.4,p.s.z)});
+placed.forEach((p,i)=>{p.f=i<20;const d=document.createElement('div');d.className='lbl '+p.cls+(p.f?' f':'');d.textContent=(p.f?'★ ':'')+'@'+p.user;lbBox.appendChild(d);p.el=d;p.pos=new THREE.Vector3(p.s.x,6.4,p.s.z)});
+vacant.forEach(v=>{const d=document.createElement('div');d.className='lbl e';d.textContent='kosong';lbBox.appendChild(d);v.el=d;v.pos=new THREE.Vector3(v.s.x,6.4,v.s.z)});
 let SEL=null;
 function updLabels(){
  const dist=cam.position.distanceTo(controls.target),many=placed.length>12;
  for(const p of placed){tmp.copy(p.pos).project(cam);const vis=tmp.z<1&&Math.abs(tmp.x)<1.1&&Math.abs(tmp.y)<1.1&&(!many||dist<130||p===SEL);
   p.el.style.display=vis?'block':'none';if(vis){p.el.style.transform=`translate(${(tmp.x*.5+.5)*innerWidth}px,${(-tmp.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`}}
+ for(const v of vacant){if(dist>85){v.el.style.display='none';continue}tmp.copy(v.pos).project(cam);const vis=tmp.z<1&&Math.abs(tmp.x)<1.1&&Math.abs(tmp.y)<1.1;v.el.style.display=vis?'block':'none';if(vis)v.el.style.transform=`translate(${(tmp.x*.5+.5)*innerWidth}px,${(-tmp.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`}
 }
 // ---------- pencarian + terbang ke rumah ----------
 let fly=null;
@@ -266,32 +291,72 @@ function flyTo(p){SEL=p;placed.forEach(x=>x.el.classList.toggle('sel',x===p));
  const t=new THREE.Vector3(p.s.x,3,p.s.z),dir=new THREE.Vector3(p.s.x,0,p.s.z).normalize();
  const side=new THREE.Vector3(-dir.z,0,dir.x),to=t.clone().sub(dir.clone().multiplyScalar(13)).add(side.multiplyScalar(20)).add(new THREE.Vector3(0,16,0));
  fly={t0:performance.now(),a:controls.target.clone(),b:t,pa:cam.position.clone(),pb:to};
- const i=document.getElementById('info');i.style.display='block';i.innerHTML=`<b>@${p.user}</b><br>Rumah ${p.b.id} · Sektor ${p.s.sector} · Hari ke-${p.b.day}`}
+ const i=document.getElementById('info');i.style.display='block';i.innerHTML=`<b>@${p.user}</b>${p.f?' ★ Warga Pendiri':''}<br>Rumah ${p.b.id} · Sektor ${p.s.sector} · Hari ke-${p.b.day}<br><button class="btn" id="play">🎮 Main sebagai @${p.user}</button>`;document.getElementById('play').onclick=()=>startPlay(p)}
 const qi=document.getElementById('q'),rs=document.getElementById('res');
 qi.addEventListener('input',()=>{const v=qi.value.trim().replace(/^@/,'').toLowerCase();rs.innerHTML='';if(!v)return;
  placed.filter(p=>p.user.toLowerCase().includes(v)).slice(0,5).forEach(p=>{const d=document.createElement('div');d.innerHTML=`@${p.user} <small>· sektor ${p.s.sector}</small>`;d.onclick=()=>{flyTo(p);rs.innerHTML='';qi.blur()};rs.appendChild(d)});
  if(!rs.children.length){const d=document.createElement('div');d.textContent='Belum ketemu. Follow @pohonwarga lalu komen untuk dapat rumah!';rs.appendChild(d)}});
 function goHome(){SEL=null;placed.forEach(x=>x.el.classList.remove('sel'));document.getElementById('info').style.display='none';fly={t0:performance.now(),a:controls.target.clone(),b:HOME.t.clone(),pa:cam.position.clone(),pb:HOME.p.clone()}}
-addEventListener('keydown',e=>{if(e.key==='Escape')goHome()});
+addEventListener('keydown',e=>{if(e.key==='Escape'){if(PL)stopPlay();else goHome()}});
+
+// ---------- mode main: cari rumah lalu jalankan karakternya ----------
+const JOY={x:0,y:0},KEYS={};let PL=null,WT=null,BR=null,GB=null;
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;KEYS[e.key.length===1?e.key.toLowerCase():e.key]=true});
+addEventListener('keyup',e=>{KEYS[e.key.length===1?e.key.toLowerCase():e.key]=false});
+{const jy=document.getElementById('joy'),kn=document.getElementById('knob');let act=false;
+ const mv=e=>{const r=jy.getBoundingClientRect();let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const m=Math.hypot(dx,dy),R=46;if(m>R){dx*=R/m;dy*=R/m}kn.style.transform=`translate(${dx}px,${dy}px)`;JOY.x=dx/R;JOY.y=-dy/R};
+ jy.addEventListener('pointerdown',e=>{act=true;jy.setPointerCapture(e.pointerId);mv(e)});
+ jy.addEventListener('pointermove',e=>{if(act)mv(e)});
+ const up=()=>{act=false;kn.style.transform='';JOY.x=JOY.y=0};jy.addEventListener('pointerup',up);jy.addEventListener('pointercancel',up)}
+function prepWorld(){if(WT)return;WT=[];const wm=[];
+ desa.traverse(o=>{if(!o.isMesh||!o.material)return;const n=o.material.name;
+  if(/^v5_(shallow|deep)$/.test(n)){o.updateWorldMatrix(true,false);const g=o.geometry,P=g.attributes.position,I=g.index,v=new THREE.Vector3(),pt=[];for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i).applyMatrix4(o.matrixWorld);pt.push([v.x,v.z])}
+   const T=I?I.count/3:P.count/3;for(let t=0;t<T;t++){const a=pt[I?I.getX(t*3):t*3],b=pt[I?I.getX(t*3+1):t*3+1],c=pt[I?I.getX(t*3+2):t*3+2];WT.push([a[0],a[1],b[0],b[1],c[0],c[1],Math.min(a[0],b[0],c[0]),Math.max(a[0],b[0],c[0]),Math.min(a[1],b[1],c[1]),Math.max(a[1],b[1],c[1])])}}
+  if(/^d4_grass$|^v5_grass2?_t$/.test(n)){o.updateWorldMatrix(true,false);const b=new THREE.Box3().setFromObject(o);GB=GB?GB.union(b):b}});
+ const br=desa.getObjectByName('v5_x_bridge');if(br){const pts=[];br.updateWorldMatrix(true,true);br.traverse(o=>{if(!o.isMesh)return;const P=o.geometry.attributes.position,v=new THREE.Vector3();for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i).applyMatrix4(o.matrixWorld);pts.push([v.x,v.z])}});
+  if(pts.length){const cx=pts.reduce((a,q)=>a+q[0],0)/pts.length,cz=pts.reduce((a,q)=>a+q[1],0)/pts.length;let sxx=0,sxz=0,szz=0;pts.forEach(q=>{const x=q[0]-cx,z=q[1]-cz;sxx+=x*x;sxz+=x*z;szz+=z*z});
+   const th=.5*Math.atan2(2*sxz,sxx-szz),ux=Math.cos(th),uz=Math.sin(th);let hl=0,hw=0;pts.forEach(q=>{const x=q[0]-cx,z=q[1]-cz;hl=Math.max(hl,Math.abs(x*ux+z*uz));hw=Math.max(hw,Math.abs(-x*uz+z*ux))});BR={cx,cz,ux,uz,hl,hw}}}
+ window.__walk={tris:WT.length,bridge:BR,ground:GB&&[GB.min.x,GB.min.z,GB.max.x,GB.max.z]}}
+const inTri=(x,z,t)=>{if(x<t[6]||x>t[7]||z<t[8]||z>t[9])return false;const d=(t[3]-t[5])*(t[0]-t[4])+(t[4]-t[2])*(t[1]-t[5]);if(!d)return false;const a=((t[3]-t[5])*(x-t[4])+(t[4]-t[2])*(z-t[5]))/d,b=((t[5]-t[1])*(x-t[4])+(t[0]-t[4])*(z-t[5]))/d;return a>=0&&b>=0&&a+b<=1};
+const inWater=(x,z)=>{for(const t of WT)if(inTri(x,z,t))return true;return false};
+const onBridge=(x,z)=>{if(!BR)return false;const dx=x-BR.cx,dz=z-BR.cz;return Math.abs(dx*BR.ux+dz*BR.uz)<=BR.hl&&Math.abs(-dx*BR.uz+dz*BR.ux)<=BR.hw+.2};
+function blocked(x,z){if(!WT)return false;if(GB&&(x<GB.min.x+3||x>GB.max.x-3||z<GB.min.z+3||z>GB.max.z-3))return true;
+ for(const[dx,dz]of[[0,0],[.45,0],[-.45,0],[0,.45],[0,-.45]]){const px=x+dx,pz=z+dz;if(!onBridge(px,pz)&&inWater(px,pz))return true}return false}
+function hashStr(t){let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))>>>0;return h}
+function startPlay(p){if(PL)stopPlay(true);prepWorld();
+ const g=mkWarga(hashStr(p.user)%8),dx=-p.s.x,dz=-p.s.z,dl=Math.hypot(dx,dz)||1,Dx=dx/dl,Dz=dz/dl,sx=p.s.x+Dx*5.4,sz=p.s.z+Dz*5.4;
+ PL=agent(g,.5,sx,sz,3.3,'player',{kind:'warga'});PL.h=Math.atan2(-Dx,-Dz);PL.lx=sx;PL.lz=sz;PL.user=p.user;
+ const e=document.createElement('div');e.className='lbl me';e.textContent='@'+p.user;lbBox.appendChild(e);PL.el=e;
+ document.body.classList.add('play');SEL=p;fly=null;
+ controls.minDistance=5;controls.maxDistance=15;controls.enablePan=false;
+ controls.target.set(sx,1.1,sz);cam.position.set(sx+Dx*9,6.6,sz+Dz*9);controls.update()}
+function stopPlay(quiet){if(!PL)return;AG.splice(AG.indexOf(PL),1);S.remove(PL.g);if(PL.el)PL.el.remove();PL=null;JOY.x=JOY.y=0;
+ document.body.classList.remove('play');controls.minDistance=18;controls.maxDistance=330;controls.enablePan=true;if(!quiet)goHome()}
+document.getElementById('exitp').onclick=()=>stopPlay();
+function followPlayer(){if(!PL)return;const dx=PL.x-PL.lx,dz=PL.z-PL.lz;PL.lx=PL.x;PL.lz=PL.z;controls.target.x+=dx;controls.target.z+=dz;cam.position.x+=dx;cam.position.z+=dz;
+ tmp.set(PL.x,2.3,PL.z).project(cam);if(PL.el){PL.el.style.display=tmp.z<1?'block':'none';PL.el.style.transform=`translate(${(tmp.x*.5+.5)*innerWidth}px,${(-tmp.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`}}
 
 // ---------- HUD ----------
 const L2=DAYS[DAYS.length-1];
-document.getElementById('day').textContent='HARI KE-'+(DATA.day??0);
-document.getElementById('pop').textContent=(DATA.population??placed.length)+' warga';
+document.getElementById('day').textContent='HARI KE-'+Math.max(1,DATA.day??1);
+document.getElementById('pop').textContent='WARGA: '+(DATA.population??placed.length+1);
 document.querySelectorAll('#bar [data-m]').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 const photoBtn=document.getElementById('photo');
 photoBtn.onclick=()=>{document.body.classList.toggle('photo');photoBtn.textContent=document.body.classList.contains('photo')?'✕ Keluar foto':'📷 Mode foto';controls.autoRotate=false};
 document.getElementById('shot').onclick=()=>{R.render(S,cam);cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pohon-warga-'+MODE+'.png';a.click()})};
 setMode(MODE);
+if(!Q.has('m')&&!Q.has('nointro')&&!Q.has('demo')&&budi){const bx=AG[0].x,bz=AG[0].z;controls.minDistance=3;controls.target.set(bx,1.4,bz);cam.position.set(bx+6,4.2,bz+8);
+ fly={t0:performance.now()+700,d:2800,a:controls.target.clone(),b:HOME.t.clone(),pa:cam.position.clone(),pb:HOME.p.clone()}}
 
 // ---------- API untuk script video / tes ----------
 window.__tt=undefined;window.__ready=true;
-window.__cam=c=>{if(c&&c.pos)cam.position.set(...c.pos);if(c&&c.target)controls.target.set(...c.target);controls.update()};
+window.__placed=placed;window.__fly=()=>fly&&{t0:fly.t0,d:fly.d,now:performance.now()};window.__camPos=()=>[cam.position.x,cam.position.y,cam.position.z];window.__blocked=(x,z)=>blocked(x,z);window.__play=startPlay;window.__stop=stopPlay;window.__PL=()=>PL;window.__vac=vacant.map(v=>({x:v.s.x,z:v.s.z}));
+window.__cam=c=>{fly=null;if(c&&c.pos)cam.position.set(...c.pos);if(c&&c.target)controls.target.set(...c.target);controls.update()};
 window.__houses=placed.map(p=>({id:p.b.id,user:p.user,sector:p.s.sector,x:p.s.x,z:p.s.z}));
 
 document.getElementById('load').style.opacity=0;setTimeout(()=>document.getElementById('load').remove(),600);
 function loop(){requestAnimationFrame(loop);
- if(fly){const k=Math.min(1,(performance.now()-fly.t0)/1100),e=k*k*(3-2*k);controls.target.lerpVectors(fly.a,fly.b,e);cam.position.lerpVectors(fly.pa,fly.pb,e);if(k>=1)fly=null}
- {const n=performance.now();simUpdate((n-(window.__lt||n))/1000);window.__lt=n}controls.update();R.render(S,cam);updLabels()}
+ if(fly){const k=Math.min(1,Math.max(0,(performance.now()-fly.t0)/(fly.d||1100))),e=k*k*(3-2*k);controls.target.lerpVectors(fly.a,fly.b,e);cam.position.lerpVectors(fly.pa,fly.pb,e);if(k>=1){fly=null;if(!PL)controls.minDistance=18}}
+ {const n=performance.now();simUpdate((n-(window.__lt||n))/1000);window.__lt=n}followPlayer();controls.update();R.render(S,cam);updLabels()}
 loop();
 </script></body></html>
