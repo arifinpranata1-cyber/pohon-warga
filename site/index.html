@@ -34,7 +34,7 @@ body.photo .hud:not(#bar){display:none}body.photo .lbl{display:none}body.photo #
 <div class="hud" id="top"><div class="logo">🌳 POHON WARGA</div><div><span class="chip w" id="pop">… warga</span><span class="chip" id="day">HARI KE-…</span></div></div>
 <div class="hud" id="side"><input id="q" placeholder="Cari rumah warga (tanpa @)" autocomplete="off"><div id="res"></div></div>
 <div class="hud" id="info" style="display:none"></div>
-<div class="hud" id="bar"><button class="btn nf" data-m="siang">☀️ Siang</button><button class="btn nf" data-m="sore">🌇 Senja</button><button class="btn nf" data-m="malam">🌙 Malam</button><button class="btn" id="photo">📷 Mode foto</button></div>
+<div class="hud" id="bar"><button class="btn nf" data-m="pagi">🌅 Pagi</button><button class="btn nf" data-m="siang">☀️ Siang</button><button class="btn nf" data-m="sore">🌇 Senja</button><button class="btn nf" data-m="malam">🌙 Malam</button><button class="btn" id="photo">📷 Mode foto</button></div>
 <div id="shot" title="Ambil foto"></div>
 <div id="load">Memuat desa…</div>
 <script type="importmap">{"imports":{"three":"./lib/three/build/three.module.js","three/addons/":"./lib/three/examples/jsm/"}}</script>
@@ -45,7 +45,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 const Q=new URLSearchParams(location.search);
 const hr=(new Date().getUTCHours()+7)%24;
-let MODE=Q.get('m')||(Q.has('night')?'malam':((hr>=6&&hr<16)?'siang':(hr>=19||hr<5)?'malam':'sore'));
+let MODE=Q.get('m')||(Q.has('night')?'malam':((hr>=6&&hr<16)?'siang':(hr>=19||hr<5)?'malam':(hr>=15)?'sore':(hr>=9)?'siang':'pagi'));
 if(MODE==='senja')MODE='sore';
 
 const cv=document.getElementById('c');
@@ -63,9 +63,10 @@ addEventListener('resize',resize);resize();
 
 // ---------- pencahayaan (3 suasana) ----------
 const LOOK={
- siang:{sky:['#7cc4f2','#b9dcf5','#ffe3b0','#ffcf94'],fog:0xe8d6bd,hemi:[0xfff0d8,0x7fd9a6,1.7],sun:[0xffe2b0,3.0],pos:[-45,78,32],exp:1.1,lamp:0,stars:0,fly:.15},
- sore:{sky:['#3B2C9A','#8E47C2','#FF7F8F','#FFD08A'],fog:0xe9a7c0,hemi:[0xd6b8ff,0x3fd0a0,2.1],sun:[0xffc98a,3.6],pos:[70,40,-30],exp:1.2,lamp:.55,stars:.85,fly:.9},
- malam:{sky:['#02011a','#0a0a45','#1c1260','#3a1a66'],fog:0x0b0a2e,hemi:[0x6a6aef,0x2a5a6a,.7],sun:[0x7f90e8,.5],pos:[-45,78,32],exp:1.0,lamp:1,stars:1,fly:1}
+ pagi:{sky:['#86b4e6','#f3c9c0','#ffe2b8','#fff0d2'],fog:0xf3e0d0,hemi:[0xeaf0ff,0x93d4a6,1.35],sun:[0xffdcb4,2.3],pos:[-62,36,42],exp:1.0,lamp:0,stars:0,fly:.2},
+ siang:{sky:['#78b7ea','#b5d9f2','#e9ecd8','#f3e6c8'],fog:0xdde3dc,hemi:[0xf2f4ff,0x86cf9c,1.15],sun:[0xfff1d8,2.1],pos:[-45,78,32],exp:.88,lamp:0,stars:0,fly:.1},
+ sore:{sky:['#3B2C9A','#8E47C2','#FF7F8F','#FFB89A'],fog:0xdba6c4,hemi:[0xd6b8ff,0x3fd0a0,1.8],sun:[0xffa9b4,2.5],pos:[70,40,-30],exp:1.0,lamp:.55,stars:.85,fly:.9},
+ malam:{sky:['#0a0a3a','#1c1a6a','#3a2a88','#5a3a90'],fog:0x24206a,hemi:[0x9a9aff,0x3f7a9a,1.45],sun:[0xb4c4ff,1.3],pos:[-45,78,32],exp:1.15,lamp:1,stars:1,fly:1}
 };
 const hemi=new THREE.HemisphereLight(0xffffff,0x888888,1);S.add(hemi);
 const sun=new THREE.DirectionalLight(0xffffff,1);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
@@ -100,6 +101,19 @@ const TREE=new THREE.Group();TREE.scale.setScalar(1.4);S.add(TREE);
  for(let i=0;i<22;i++){const a=rnd()*6.28,d=7+rnd()*5,L=2+rnd()*3;const v=new THREE.Mesh(new THREE.CylinderGeometry(.08,.04,L,4),MT(0x1fa67e));v.position.set(Math.cos(a)*d,24-L/2+rnd()*2,Math.sin(a)*d);TREE.add(v);const t=new THREE.Mesh(new THREE.IcosahedronGeometry(.4,0),MT(0x4fe3b0));t.position.set(v.position.x,v.position.y-L/2,v.position.z);TREE.add(t)}
 }
 
+// ---------- 3 penduduk (jalan keliling di jalan desa) ----------
+const PPL=[];
+{const skin=[0xf6c9a8,0xd9966a,0xf0b088],shirts=[0x7a4ad8,0xffc227,0x2f9e55],hairs=[0x3a2418,0x14101a,0x7a3a18],radii=[20.5,24.5,17],spd=[.05,-.04,.06],ph=[0,2.1,4.2];
+ for(let i=0;i<3;i++){const g=new THREE.Group();const m=(geo,c,x,y,z)=>{const o=new THREE.Mesh(geo,MT(c));o.position.set(x,y,z);o.castShadow=true;g.add(o);return o};
+  const legs=[m(new THREE.BoxGeometry(.5,1,.55),0x24204a,-.3,.5,0),m(new THREE.BoxGeometry(.5,1,.55),0x24204a,.3,.5,0)];
+  m(new THREE.BoxGeometry(1.5,1.3,.9),shirts[i],0,1.65,0);
+  m(new THREE.SphereGeometry(.85,10,8),skin[i],0,3.0,0);
+  const h=m(new THREE.SphereGeometry(.9,10,8,0,Math.PI*2,0,Math.PI*.55),hairs[i],0,3.12,-.05);
+  m(new THREE.SphereGeometry(.1,6,5),0x1a1030,-.28,3.0,.78);m(new THREE.SphereGeometry(.1,6,5),0x1a1030,.28,3.0,.78);
+  g.scale.setScalar(.95);S.add(g);PPL.push({g,r:radii[i],w:spd[i],a:ph[i],legs})}
+}
+function updPeople(t){for(const p of PPL){const a=p.a+t*p.w;p.g.position.set(Math.cos(a)*p.r,Math.abs(Math.sin(t*5+p.a))*.12,Math.sin(a)*p.r);p.g.rotation.y=-a+(p.w>0?Math.PI:0)+(p.w>0?-Math.PI/2:Math.PI/2)+Math.PI;p.legs[0].rotation.x=Math.sin(t*5+p.a)*.5;p.legs[1].rotation.x=-Math.sin(t*5+p.a)*.5}}
+
 function setMode(m){
  if(!LOOK[m])m='siang';MODE=m;const L=LOOK[m];
  S.background=skyTex(L.sky);S.fog=new THREE.Fog(L.fog,230,520);
@@ -121,7 +135,7 @@ let LBL={};try{LBL=await (await fetch('v5/labels.json')).json()}catch(e){}
 let DAYS=[];try{DAYS=await (await fetch('data/days.json')).json()}catch(e){}
 
 function prep(o,recv){o.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=!!recv;const mt=m.material;if(mt&&mt.name==='v5_lamp_glow')glowMats.push(mt);if(mt&&/^v5_(shallow|deep|foam)$/.test(mt.name)){m.castShadow=false}}})}
-const desa=stat.scene;{const kill=[];desa.traverse(o=>{if(/^BigTree/.test(o.name)||/^bt_/.test(o.name))kill.push(o)});kill.forEach(o=>o.parent&&o.parent.remove(o))}prep(desa,true);S.add(desa);
+const desa=stat.scene;{const kill=[];desa.traverse(o=>{if(/^BigTree/.test(o.name)||/^bt_/.test(o.name))kill.push(o)});kill.forEach(o=>o.parent&&o.parent.remove(o))}prep(desa,true);S.add(desa);{let bd=null;desa.traverse(o=>{if(!bd&&/^Budi/.test(o.name))bd=o});if(bd)bd.scale.multiplyScalar(.55);window.__budi=bd}
 {const rm=[];desa.traverse(o=>{if(o.isMesh&&o.material&&o.material.name==='v5_lamp_glow')glowMats.push(o.material)})}
 glowMats=[...new Set(glowMats)];
 
@@ -188,6 +202,6 @@ window.__houses=placed.map(p=>({id:p.b.id,user:p.user,sector:p.s.sector,x:p.s.x,
 document.getElementById('load').style.opacity=0;setTimeout(()=>document.getElementById('load').remove(),600);
 function loop(){requestAnimationFrame(loop);
  if(fly){const k=Math.min(1,(performance.now()-fly.t0)/1100),e=k*k*(3-2*k);controls.target.lerpVectors(fly.a,fly.b,e);cam.position.lerpVectors(fly.pa,fly.pb,e);if(k>=1)fly=null}
- controls.update();R.render(S,cam);updLabels()}
+ updPeople(performance.now()/1000);controls.update();R.render(S,cam);updLabels()}
 loop();
 </script></body></html>
