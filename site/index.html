@@ -190,11 +190,11 @@ if(budi){for(const n of['ArmL001','ArmR001','HatRig001','Sweat001'])BN[n]=budi.g
 const WALK_ARC=[(-87.6+180)*Math.PI/180,Math.PI*2/3];
 const PPL=[];
 if(budi){const [x,z]=polar(16.5,45);const a=agent(budi,.45,x,z,.8,'walk',{R:16.5,dir:1,kind:'budi'});PPL.push(a)}
-const WSC=.62;
+const WSC=1.15;
 function mkWarga(i){const src=wargaG.scene.getObjectByName('WP'+(i%8));const g=new THREE.Group(),m=src.clone(true);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(WSC);m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=false}});g.add(m);const F=n=>{let r=null;m.traverse(o=>{if(!r&&o.name.startsWith(n)&&!o.isMesh)r=o});return r};g.userData={lg:[F('LegL'),F('LegR')],ar:[F('ArmL'),F('ArmR')]};return g}
-[[0,16.5,200,-1,null],[1,31.5,60,1,WALK_ARC],[5,31.5,150,-1,WALK_ARC]].forEach(([i,R,deg,dir,arc],k)=>{const g=mkWarga(i);const [x,z]=polar(R,deg);PPL.push(agent(g,.3,x,z,.6+k*.04,'walk',{R,dir,arc,kind:'warga'}))});
+[[0,16.5,200,-1,null],[1,31.5,60,1,WALK_ARC],[5,31.5,150,-1,WALK_ARC]].forEach(([i,R,deg,dir,arc],k)=>{const g=mkWarga(i);const [x,z]=polar(R,deg);PPL.push(agent(g,.5,x,z,.6+k*.04,'walk',{R,dir,arc,kind:'warga'}))});
 // hewan
-const BIRDS=[];window.__agents=AG;
+const BIRDS=[];window.__agents=AG;window.__hgt=a=>{a.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(a.g);return [b.max.y-b.min.y,b.max.x-b.min.x]};
 
 function freeSpot(a,zone){for(let k=0;k<30;k++){const R=rr(zone[0],zone[1]),t=rr(0,6.28),x=Math.cos(t)*R,z=Math.sin(t)*R;if(!OB.some(o=>Math.hypot(x-o[0],z-o[1])<o[2]+a.rad+.4))return[x,z]}return[a.x,a.z]}
 let BK=null,bTimer=rr(10,16),bCool=0;
